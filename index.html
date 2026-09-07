@@ -575,6 +575,7 @@
       </div>
       <button class="btn" id="loginSubmitBtn">登录</button>
       <div class="auth-err" id="loginErr"></div>
+      <div id="authDebug" style="font-size:10.5px;color:#8A968F;word-break:break-all;line-height:1.5;margin-top:6px;"></div>
       <div style="text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
         <span id="authSwitchHint">还没有账号？</span>
         <a href="#" id="authSwitchBtn" style="color:var(--accent);font-weight:600;text-decoration:none;">注册一个</a>
@@ -3154,12 +3155,20 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
       }
     }
     let msg = raw;
+    // 把服务端原文完整打出来，方便定位 400 的真正原因
+    let detail = '';
+    try{
+      detail = JSON.stringify(e, Object.getOwnPropertyNames(e || {}));
+      console.error('认证失败原文：', e, detail);
+    }catch(_){}
     if(/exists|已存在|already/i.test(raw)) msg = '这个账号已被注册，换一个或直接登录';
     else if(/password|密码/i.test(raw) && /invalid|incorrect|错误/i.test(raw)) msg = '账号或密码不对';
     else if(/not\s*found|不存在/i.test(raw)) msg = '账号不存在，先点下面的「注册一个」';
     else if(authMode === 'signin' && !raw) msg = '账号不存在或密码不对；新用户请先点下面的「注册一个」';
     else if(/not\s*enabled|disabled|未开启/i.test(raw)) msg = '云开发控制台里还没开启「用户名密码」登录方式';
     errEl.textContent = (authMode === 'signup' ? '注册失败：' : '登录失败：') + (msg || '请稍后重试');
+    const dbg = document.getElementById('authDebug');
+    if(dbg) dbg.textContent = (detail || '').slice(0, 400);
   }finally{
     btn.disabled = false; btn.textContent = label;
   }
