@@ -560,19 +560,25 @@
   <div class="auth-card">
     <h1>我的路书</h1>
     <div class="sub">登录后可以保存多条线路，随时切换</div>
-    <div id="login-phone-step">
+    <div id="login-pw-step">
       <div class="field">
-        <label>手机号</label>
-        <input id="loginPhone" type="tel" placeholder="13800000000" maxlength="11">
+        <label>账号</label>
+        <input id="loginUser" type="text" placeholder="字母开头，如 laozhang" autocomplete="username" maxlength="24">
       </div>
       <div class="field">
-        <div class="auth-row">
-          <input id="loginCode" type="text" placeholder="6 位验证码" maxlength="6">
-          <button class="btn ghost small" id="sendCodeBtn">获取验证码</button>
-        </div>
+        <label>密码</label>
+        <input id="loginPass" type="password" placeholder="至少 8 位，含字母和数字" autocomplete="current-password">
       </div>
-      <button class="btn" id="loginSubmitBtn">登录 / 注册</button>
+      <div class="field" id="signupPass2Field" style="display:none">
+        <label>确认密码</label>
+        <input id="loginPass2" type="password" placeholder="再输一次" autocomplete="new-password">
+      </div>
+      <button class="btn" id="loginSubmitBtn">登录</button>
       <div class="auth-err" id="loginErr"></div>
+      <div style="text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
+        <span id="authSwitchHint">还没有账号？</span>
+        <a href="#" id="authSwitchBtn" style="color:var(--accent);font-weight:600;text-decoration:none;">注册一个</a>
+      </div>
     </div>
   </div>
 </div>
@@ -3061,62 +3067,78 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
 }
 
-function normalizePhone(raw){
-  return '+86 ' + raw.replace(/\D/g,'');
+function setAuthDefaults(){}
+
+/* ---------- 登录 / 注册（账号 + 密码）---------- */
+let authMode = 'signin'; // 'signin' | 'signup'
+
+function setAuthMode(mode){
+  authMode = mode;
+  const isUp = mode === 'signup';
+  document.getElementById('signupPass2Field').style.display = isUp ? '' : 'none';
+  document.getElementById('loginSubmitBtn').textContent = isUp ? '注册并登录' : '登录';
+  document.getElementById('authSwitchHint').textContent = isUp ? '已经有账号？' : '还没有账号？';
+  document.getElementById('authSwitchBtn').textContent = isUp ? '直接登录' : '注册一个';
+  document.getElementById('loginPass').setAttribute('autocomplete', isUp ? 'new-password' : 'current-password');
+  showLoginErr('');
 }
 
-/* ---------- 登录 ---------- */
-let verificationInfo = null;
-let smsTimer = null;
-
-document.getElementById('sendCodeBtn').addEventListener('click', async ()=>{
-  const errEl = document.getElementById('loginErr');
-  errEl.textContent='';
-  if(!cbAuth){ errEl.textContent='云服务未就绪：'+(cbInitError&&cbInitError.message||'请刷新页面重试'); return; }
-  const phoneRaw = document.getElementById('loginPhone').value.trim();
-  if(!/^1\d{10}$/.test(phoneRaw)){ errEl.textContent='请输入 11 位手机号'; return; }
-  const btn = document.getElementById('sendCodeBtn');
-  btn.disabled = true;
-  try{
-    verificationInfo = await cbAuth.getVerification({ phone_number: normalizePhone(phoneRaw) });
-    let count = 60;
-    btn.textContent = count+'s后重发';
-    clearInterval(smsTimer);
-    smsTimer = setInterval(()=>{
-      count--;
-      if(count<=0){ clearInterval(smsTimer); btn.disabled=false; btn.textContent='获取验证码'; }
-      else btn.textContent = count+'s后重发';
-    },1000);
-  }catch(e){
-    errEl.textContent = '发送失败：'+(e.message||'请稍后重试');
-    btn.disabled = false;
-  }
+document.getElementById('authSwitchBtn').addEventListener('click', (e)=>{
+  e.preventDefault();
+  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
 });
 
 document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
   const errEl = document.getElementById('loginErr');
   errEl.textContent='';
   if(!cbAuth){ errEl.textContent='云服务未就绪：'+(cbInitError&&cbInitError.message||'请刷新页面重试'); return; }
-  const phoneRaw = document.getElementById('loginPhone').value.trim();
-  const code = document.getElementById('loginCode').value.trim();
-  if(!verificationInfo){ errEl.textContent='请先获取验证码'; return; }
-  if(!/^\d{6}$/.test(code)){ errEl.textContent='请输入 6 位验证码'; return; }
+
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const password2 = document.getElementById('loginPass2').value;
+
+  if(!/^[A-Za-z][A-Za-z0-9_-]{2,23}$/.test(username)){
+    errEl.textContent='账号要字母开头，3-24 位，只能用字母、数字、- 或 _';
+    return;
+  }
+  if(password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)){
+    errEl.textContent='密码至少 8 位，且同时含字母和数字';
+    return;
+  }
+  if(authMode === 'signup' && password !== password2){
+    errEl.textContent='两次输入的密码不一致';
+    return;
+  }
+
   const btn = document.getElementById('loginSubmitBtn');
-  btn.disabled = true; btn.textContent='登录中…';
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = authMode === 'signup' ? '注册中…' : '登录中…';
   try{
-    await cbAuth.signInWithSms({
-      verificationInfo,
-      verificationCode: code,
-      phoneNum: normalizePhone(phoneRaw)
-    });
-    document.getElementById('loginPhone').value='';
-    document.getElementById('loginCode').value='';
+    if(authMode === 'signup'){
+      await cbAuth.signUp({ username, password });
+      // 部分环境 signUp 后已自动登录；没登上就再登一次
+      if(!(cbAuth.hasLoginState && cbAuth.hasLoginState())){
+        await cbAuth.signIn({ username, password });
+      }
+    } else {
+      await cbAuth.signIn({ username, password });
+    }
+    document.getElementById('loginUser').value='';
+    document.getElementById('loginPass').value='';
+    document.getElementById('loginPass2').value='';
   }catch(e){
-    errEl.textContent = '登录失败：'+(e.message||'验证码错误或已过期');
+    const raw = (e && (e.message || e.error_description || e.error)) || '';
+    let msg = raw;
+    if(/exists|已存在|already/i.test(raw)) msg = '这个账号已被注册，换一个或直接登录';
+    else if(/password|密码/i.test(raw) && /invalid|incorrect|错误/i.test(raw)) msg = '账号或密码不对';
+    else if(/not\s*found|不存在/i.test(raw)) msg = '账号不存在，先注册一个';
+    else if(/not\s*enabled|disabled|未开启/i.test(raw)) msg = '云开发控制台里还没开启「用户名密码」登录方式';
+    errEl.textContent = (authMode === 'signup' ? '注册失败：' : '登录失败：') + (msg || '请稍后重试');
   }finally{
-    btn.disabled = false; btn.textContent = '登录 / 注册';
+    btn.disabled = false; btn.textContent = label;
   }
 });
+
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
   if(!cbAuth) return;
@@ -3597,7 +3619,7 @@ async function loadProfile(){
   const uid = getCurrentUid();
   const user = cbAuth && cbAuth.currentUser;
   document.getElementById('profilePhone').textContent =
-    '手机号：' + ((user && (user.phoneNumber||user.phone_number)) || '（未获取到）');
+    '账号：' + ((user && (user.username||user.name||user.phoneNumber||user.phone_number)) || '（未获取到）');
   document.getElementById('profileUid').textContent = uid || '（未获取到）';
   const msg = document.getElementById('profileMsg');
   msg.textContent='';
