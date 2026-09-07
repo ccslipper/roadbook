@@ -3068,6 +3068,7 @@ function showScreen(id){
 }
 
 function setAuthDefaults(){}
+setTimeout(()=>{ try{ setAuthMode('signin'); }catch(e){} }, 0);
 
 /* ---------- 登录 / 注册（账号 + 密码）---------- */
 let authMode = 'signin'; // 'signin' | 'signup'
@@ -3116,9 +3117,23 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
   try{
     if(authMode === 'signup'){
       await cbAuth.signUp({ username, password });
-      // 部分环境 signUp 后已自动登录；没登上就再登一次
-      if(!(cbAuth.hasLoginState && cbAuth.hasLoginState())){
-        await cbAuth.signIn({ username, password });
+      // signUp 成功后 SDK 通常已经是登录态了，千万不能再登一次（会被服务端打回 400）
+      let logged = false;
+      try{
+        if(cbAuth.currentUser) logged = true;
+        else if(cbAuth.getLoginState) logged = !!(await cbAuth.getLoginState());
+        else if(cbAuth.hasLoginState) logged = !!cbAuth.hasLoginState();
+      }catch(e){ logged = false; }
+      if(!logged){
+        try{ await cbAuth.signIn({ username, password }); }
+        catch(e2){
+          // 账号已经建好了，只是自动登录没成：说清楚，不当作注册失败
+          errEl.textContent = '账号已创建成功，请直接用刚才的账号密码登录';
+          setAuthMode('signin');
+          document.getElementById('loginUser').value = username;
+          btn.disabled = false; btn.textContent = label;
+          return;
+        }
       }
     } else {
       await cbAuth.signIn({ username, password });
@@ -3128,10 +3143,21 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
     document.getElementById('loginPass2').value='';
   }catch(e){
     const raw = (e && (e.message || e.error_description || e.error)) || '';
+    // 账号已存在：直接帮他用同一组账密登录，不让他再手动切
+    if(authMode === 'signup' && /exists|已存在|already/i.test(raw)){
+      try{
+        await cbAuth.signIn({ username, password });
+        return;
+      }catch(e3){
+        errEl.textContent = '这个账号已被注册，且密码不对；换一个账号名再注册';
+        return;
+      }
+    }
     let msg = raw;
     if(/exists|已存在|already/i.test(raw)) msg = '这个账号已被注册，换一个或直接登录';
     else if(/password|密码/i.test(raw) && /invalid|incorrect|错误/i.test(raw)) msg = '账号或密码不对';
-    else if(/not\s*found|不存在/i.test(raw)) msg = '账号不存在，先注册一个';
+    else if(/not\s*found|不存在/i.test(raw)) msg = '账号不存在，先点下面的「注册一个」';
+    else if(authMode === 'signin' && !raw) msg = '账号不存在或密码不对；新用户请先点下面的「注册一个」';;
     else if(/not\s*enabled|disabled|未开启/i.test(raw)) msg = '云开发控制台里还没开启「用户名密码」登录方式';
     errEl.textContent = (authMode === 'signup' ? '注册失败：' : '登录失败：') + (msg || '请稍后重试');
   }finally{
