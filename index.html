@@ -569,6 +569,17 @@
         <label>密码</label>
         <input id="loginPass" type="password" placeholder="至少 8 位，含字母和数字" autocomplete="current-password">
       </div>
+      <div class="field" id="signupPhoneField" style="display:none">
+        <label>手机号</label>
+        <input id="signupPhone" type="tel" placeholder="11 位手机号" autocomplete="tel" maxlength="11">
+      </div>
+      <div class="field" id="signupOtpField" style="display:none">
+        <label>短信验证码</label>
+        <div class="auth-row">
+          <input id="signupOtp" type="text" placeholder="6 位验证码" maxlength="6">
+          <button class="btn ghost small" id="sendOtpBtn">获取验证码</button>
+        </div>
+      </div>
       <div class="field" id="signupPass2Field" style="display:none">
         <label>确认密码</label>
         <input id="loginPass2" type="password" placeholder="再输一次" autocomplete="new-password">
@@ -3077,6 +3088,8 @@ let authMode = 'signin'; // 'signin' | 'signup'
 function setAuthMode(mode){
   authMode = mode;
   const isUp = mode === 'signup';
+  document.getElementById('signupPhoneField').style.display = isUp ? '' : 'none';
+  document.getElementById('signupOtpField').style.display = isUp ? '' : 'none';
   document.getElementById('signupPass2Field').style.display = isUp ? '' : 'none';
   document.getElementById('loginSubmitBtn').textContent = isUp ? '注册并登录' : '登录';
   document.getElementById('authSwitchHint').textContent = isUp ? '已经有账号？' : '还没有账号？';
@@ -3089,6 +3102,81 @@ document.getElementById('authSwitchBtn').addEventListener('click', (e)=>{
   e.preventDefault();
   setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
 });
+
+/* ── 注册：手机号 + 短信验证码，同时设定账号密码（以后用账密登录）── */
+let otpInfo = null, otpTimer = null;
+const phoneOf = raw => '+86 ' + String(raw).replace(/\D/g, '');
+
+document.getElementById('sendOtpBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if(!cbAuth){ errEl.textContent = '云服务未就绪，请刷新页面'; return; }
+  const phone = document.getElementById('signupPhone').value.trim();
+  if(!/^1\d{10}$/.test(phone)){ errEl.textContent = '请输入 11 位手机号'; return; }
+  const b = document.getElementById('sendOtpBtn');
+  b.disabled = true;
+  try{
+    otpInfo = await cbAuth.getVerification({ phone_number: phoneOf(phone) });
+    let n = 60; b.textContent = n + 's后重发';
+    clearInterval(otpTimer);
+    otpTimer = setInterval(()=>{
+      if(--n <= 0){ clearInterval(otpTimer); b.disabled = false; b.textContent = '获取验证码'; }
+      else b.textContent = n + 's后重发';
+    }, 1000);
+  }catch(e){
+    errEl.textContent = '发送失败：' + ((e && (e.message || e.error_description)) || '请稍后重试');
+    b.disabled = false;
+  }
+});
+
+async function doSignUp(username, password){
+  const errEl = document.getElementById('loginErr');
+  const dbg = document.getElementById('authDebug');
+  const phone = document.getElementById('signupPhone').value.trim();
+  const otp = document.getElementById('signupOtp').value.trim();
+  if(!/^1\d{10}$/.test(phone)){ errEl.textContent = '请输入 11 位手机号'; return false; }
+  if(!/^\d{4,6}$/.test(otp)){ errEl.textContent = '请先获取并填写短信验证码'; return false; }
+  if(!otpInfo){ errEl.textContent = '请先点「获取验证码」'; return false; }
+
+  // 1) 用验证码换 token
+  let vt = null;
+  try{
+    const v = await cbAuth.verify({ verification_code: otp, verification_id: otpInfo.verification_id });
+    vt = v && (v.verification_token || v.verificationToken);
+  }catch(e){
+    errEl.textContent = '验证码不对或已过期';
+    return false;
+  }
+
+  // 2) 新号：注册并带上账号密码；老号：直接短信登录后补绑账号密码
+  try{
+    await cbAuth.signUp({ phone_number: phoneOf(phone), verification_code: otp, verification_token: vt, username, password });
+    return true;
+  }catch(e){
+    const raw = (e && (e.message || e.error_description || e.code)) || '';
+    if(!/exist|已存在|already|registered/i.test(raw)){
+      errEl.textContent = '注册失败：' + (raw || '请稍后重试');
+      if(dbg) dbg.textContent = String((e && e.helpMessage) || raw).slice(0, 800);
+      return false;
+    }
+  }
+
+  // 手机号已注册过：短信登录进去，再把账号密码绑定上去
+  try{
+    await cbAuth.signIn({ username_or_phone: phoneOf(phone), verification_token: vt });
+  }catch(e){
+    try{ await cbAuth.signInWithSms({ verificationInfo: otpInfo, verificationCode: otp, phoneNum: phoneOf(phone) }); }
+    catch(e2){ errEl.textContent = '这个手机号已注册，但自动登录失败，请直接用原账号密码登录'; return false; }
+  }
+  try{
+    if(typeof cbAuth.bindUsername === 'function') await cbAuth.bindUsername(username);
+    if(typeof cbAuth.setPassword === 'function') await cbAuth.setPassword(password);
+    toast('这个手机号已注册过，已把账号和密码关联上，下次可直接用账密登录');
+  }catch(e){
+    toast('已登录；账号密码关联未成功（可能已绑定过），下次用原账密登录');
+  }
+  return true;
+}
 
 document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
   const errEl = document.getElementById('loginErr');
@@ -3116,63 +3204,15 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
   btn.disabled = true; btn.textContent = authMode === 'signup' ? '注册中…' : '登录中…';
   try{
     if(authMode === 'signup'){
-      const dbg0 = document.getElementById('authDebug');
-      let signUpRes = null;
-      const fn = typeof cbAuth.signUp === 'function' ? 'signUp'
-        : ['signUpWithUsernameAndPassword','signUpWithUsername','createUser'].find(k=>typeof cbAuth[k]==='function');
-      if(!fn){
-        errEl.textContent = '这个 SDK 版本没有注册接口，请在云开发控制台手动建用户';
-        btn.disabled = false; return;
-      }
-      // signUp 在不同环境对入参要求不一样，按候选逐个试，哪个通就用哪个
-      const candidates = [
-        { username, password, name: username },
-        { username, password },
-        { username, password, nickname: username },
-        { username: username, password: password, sign_up_type: 'username' }
-      ];
-      let lastErr = null, ok = false;
-      for(const payload of candidates){
-        try{
-          const res = await cbAuth[fn](payload);
-          const err = res && res.error;
-          if(err){ lastErr = err; continue; }
-          signUpRes = res; ok = true; break;
-        }catch(e0){ lastErr = e0; }
-      }
-      if(!ok){
-        const hm = (lastErr && (lastErr.helpMessage || lastErr.message || lastErr.code)) || '';
-        errEl.textContent = '注册接口报错，详情见下方';
-        if(dbg0) dbg0.textContent = String(hm).slice(0, 1200);
-        console.error('signUp 全部候选均失败', lastErr);
-        btn.disabled = false; return;
-      }
-      try{ if(dbg0) dbg0.textContent = ''; }catch(_){}
-      console.log('signUp 成功', signUpRes);
-      // signUp 成功后 SDK 通常已经是登录态了，千万不能再登一次（会被服务端打回 400）
-      let logged = false;
-      try{
-        if(cbAuth.currentUser) logged = true;
-        else if(cbAuth.getLoginState) logged = !!(await cbAuth.getLoginState());
-        else if(cbAuth.hasLoginState) logged = !!cbAuth.hasLoginState();
-      }catch(e){ logged = false; }
-      if(!logged){
-        try{ await cbAuth.signIn({ username, password }); }
-        catch(e2){
-          // 账号已经建好了，只是自动登录没成：说清楚，不当作注册失败
-          errEl.textContent = '账号已创建成功，请直接用刚才的账号密码登录';
-          setAuthMode('signin');
-          document.getElementById('loginUser').value = username;
-          btn.disabled = false;
-          return;
-        }
-      }
+      const ok = await doSignUp(username, password);
+      if(!ok){ btn.disabled = false; btn.textContent = '注册并登录'; return; }
     } else {
       await cbAuth.signIn({ username, password });
     }
     document.getElementById('loginUser').value='';
     document.getElementById('loginPass').value='';
     document.getElementById('loginPass2').value='';
+    document.getElementById('signupOtp').value='';
   }catch(e){
     const raw = (e && (e.message || e.error_description || e.error)) || '';
     // 账号已存在：直接帮他用同一组账密登录，不让他再手动切
