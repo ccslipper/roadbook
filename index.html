@@ -3069,7 +3069,7 @@ function showScreen(id){
 }
 
 function setAuthDefaults(){}
-setTimeout(()=>{ try{ setAuthMode('signin'); }catch(e){} }, 0);
+try{ setAuthMode('signin'); }catch(e){}
 
 /* ---------- 登录 / 注册（账号 + 密码）---------- */
 let authMode = 'signin'; // 'signin' | 'signup'
@@ -3113,11 +3113,23 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
   }
 
   const btn = document.getElementById('loginSubmitBtn');
-  const label = btn.textContent;
   btn.disabled = true; btn.textContent = authMode === 'signup' ? '注册中…' : '登录中…';
   try{
     if(authMode === 'signup'){
-      await cbAuth.signUp({ username, password });
+      const dbg0 = document.getElementById('authDebug');
+      let signUpRes = null;
+      if(typeof cbAuth.signUp !== 'function'){
+        const alt = ['signUpWithUsernameAndPassword','signUpWithUsername','createUser'].find(k=>typeof cbAuth[k]==='function');
+        if(!alt){
+          errEl.textContent = '这个 SDK 版本没有注册接口，请在云开发控制台手动建用户';
+          btn.disabled = false; return;
+        }
+        signUpRes = await cbAuth[alt]({ username, password });
+      } else {
+        signUpRes = await cbAuth.signUp({ username, password });
+      }
+      try{ if(dbg0) dbg0.textContent = 'signUp 返回：' + JSON.stringify(signUpRes).slice(0, 300); }catch(_){}
+      console.log('signUp 返回', signUpRes);
       // signUp 成功后 SDK 通常已经是登录态了，千万不能再登一次（会被服务端打回 400）
       let logged = false;
       try{
@@ -3132,7 +3144,7 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
           errEl.textContent = '账号已创建成功，请直接用刚才的账号密码登录';
           setAuthMode('signin');
           document.getElementById('loginUser').value = username;
-          btn.disabled = false; btn.textContent = label;
+          btn.disabled = false;
           return;
         }
       }
@@ -3170,7 +3182,8 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
     const dbg = document.getElementById('authDebug');
     if(dbg) dbg.textContent = (detail || '').slice(0, 400);
   }finally{
-    btn.disabled = false; btn.textContent = label;
+    btn.disabled = false;
+    btn.textContent = authMode === 'signup' ? '注册并登录' : '登录';
   }
 });
 
