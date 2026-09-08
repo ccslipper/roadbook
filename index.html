@@ -3534,14 +3534,12 @@ function buildRouteCard(route, colorIdx){
 }
 
 // resolves the logged-in user's uuid, which the RLS policy compares against.
-// the SDK exposes it under different property names across versions, so check
-// several and fall back to decoding the JWT itself.
+// the SDK exposes it under different property names across login methods (phone
+// vs username/password can populate currentUser differently), so we now trust the
+// JWT's `sub` claim FIRST — it's the one value the auth server issues consistently
+// no matter which login method was used — and only fall back to currentUser's own
+// fields if decoding the token fails for some reason.
 function getCurrentUid(){
-  const u = cbAuth && cbAuth.currentUser;
-  if(u){
-    const direct = u.uid || u.sub || u.userId || u.user_id || u.id;
-    if(direct) return direct;
-  }
   try{
     const st = cbAuth.getLoginState && cbAuth.getLoginState();
     const token = st && (st.accessToken || st.access_token);
@@ -3549,7 +3547,12 @@ function getCurrentUid(){
       const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
       if(payload && payload.sub) return payload.sub;
     }
-  }catch(e){ /* fall through */ }
+  }catch(e){ /* fall through to currentUser fields below */ }
+  const u = cbAuth && cbAuth.currentUser;
+  if(u){
+    const direct = u.sub || u.uid || u.userId || u.user_id || u.id;
+    if(direct) return direct;
+  }
   return null;
 }
 
