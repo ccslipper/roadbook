@@ -3315,10 +3315,11 @@ function resetSessionState(){
 
 function attachLoginStateListener(){
   if(!cbAuth) return;
-  cbAuth.onLoginStateChanged((params)=>{
+  cbAuth.onLoginStateChanged(async (params)=>{
     const eventType = params && params.data && params.data.eventType;
     if(eventType==='sign_in'){
       resetSessionState();
+      await hydrateLoginState();
       showScreen('screen-routelist');
       loadRouteList();
       handleIncomingShare();
@@ -3539,13 +3540,36 @@ function buildRouteCard(route, colorIdx){
 // JWT's `sub` claim FIRST — it's the one value the auth server issues consistently
 // no matter which login method was used — and only fall back to currentUser's own
 // fields if decoding the token fails for some reason.
-function getCurrentUid(){
+// on some devices (seen on mobile) `currentUser`/`getLoginState()` aren't hydrated
+// yet the instant `hasLoginState()` returns true, so we cache the uid the moment
+// we DO manage to resolve it (see hydrateLoginState below) and prefer that cache.
+let __cachedUid = null;
+async function hydrateLoginState(){
   try{
-    const st = cbAuth.getLoginState && cbAuth.getLoginState();
+    const st = await cbAuth.getLoginState();
     const token = st && (st.accessToken || st.access_token);
     if(token){
       const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-      if(payload && payload.sub) return payload.sub;
+      if(payload && payload.sub) __cachedUid = payload.sub;
+    }
+    if(!__cachedUid){
+      const u = cbAuth && cbAuth.currentUser;
+      if(u){ __cachedUid = u.sub || u.uid || u.userId || u.user_id || u.id || __cachedUid; }
+    }
+  }catch(e){ /* ignore, getCurrentUid() below still has its own fallbacks */ }
+  return __cachedUid;
+}
+function getCurrentUid(){
+  if(__cachedUid) return __cachedUid;
+  try{
+    const st = cbAuth.getLoginState && cbAuth.getLoginState();
+    // st may be a Promise on some SDK builds — only use it if it resolved synchronously to an object
+    if(st && typeof st.then !== 'function'){
+      const token = st.accessToken || st.access_token;
+      if(token){
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        if(payload && payload.sub) return payload.sub;
+      }
     }
   }catch(e){ /* fall through to currentUser fields below */ }
   const u = cbAuth && cbAuth.currentUser;
@@ -3889,9 +3913,12 @@ async function openRoute(routeId, routeName){
   showLoginErr('');
   attachLoginStateListener();
   if(cbAuth.hasLoginState()){
+    await hydrateLoginState();
     showScreen('screen-routelist');
     loadRouteList();
     handleIncomingShare();
+    if(window.rbMobileRefresh) rbMobileRefresh();
+    setTimeout(()=>{ if(window.rbMobileRefresh) rbMobileRefresh(); }, 500);
   } else {
     showScreen('screen-login');
     // an unauthenticated visitor opening a share link keeps the token in the
@@ -4368,6 +4395,10 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
 
   function renderMe(){
+    if(typeof hydrateLoginState==='function'){ hydrateLoginState().then(()=>{ if(mScreen==='me') renderMe2(); }); }
+    renderMe2();
+  }
+  function renderMe2(){
     const u = (window.cbAuth && cbAuth.currentUser) || null;
     $('msMeSub').textContent = u ? ('已登录 · '+(u.username||u.name||u.phone_number||'')) : '未登录';
     $('msMeBody').innerHTML = '<div class="ms-card" data-me="profile"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">个人信息</div><div class="ms-sub">昵称、头像</div></div><div style="color:#B4BDB4">›</div></div></div>'
