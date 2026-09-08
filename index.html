@@ -3118,18 +3118,37 @@ document.getElementById('loginSubmitBtn').addEventListener('click', async ()=>{
     if(authMode === 'signup'){
       const dbg0 = document.getElementById('authDebug');
       let signUpRes = null;
-      if(typeof cbAuth.signUp !== 'function'){
-        const alt = ['signUpWithUsernameAndPassword','signUpWithUsername','createUser'].find(k=>typeof cbAuth[k]==='function');
-        if(!alt){
-          errEl.textContent = '这个 SDK 版本没有注册接口，请在云开发控制台手动建用户';
-          btn.disabled = false; return;
-        }
-        signUpRes = await cbAuth[alt]({ username, password });
-      } else {
-        signUpRes = await cbAuth.signUp({ username, password });
+      const fn = typeof cbAuth.signUp === 'function' ? 'signUp'
+        : ['signUpWithUsernameAndPassword','signUpWithUsername','createUser'].find(k=>typeof cbAuth[k]==='function');
+      if(!fn){
+        errEl.textContent = '这个 SDK 版本没有注册接口，请在云开发控制台手动建用户';
+        btn.disabled = false; return;
       }
-      try{ if(dbg0) dbg0.textContent = 'signUp 返回：' + JSON.stringify(signUpRes).slice(0, 300); }catch(_){}
-      console.log('signUp 返回', signUpRes);
+      // signUp 在不同环境对入参要求不一样，按候选逐个试，哪个通就用哪个
+      const candidates = [
+        { username, password, name: username },
+        { username, password },
+        { username, password, nickname: username },
+        { username: username, password: password, sign_up_type: 'username' }
+      ];
+      let lastErr = null, ok = false;
+      for(const payload of candidates){
+        try{
+          const res = await cbAuth[fn](payload);
+          const err = res && res.error;
+          if(err){ lastErr = err; continue; }
+          signUpRes = res; ok = true; break;
+        }catch(e0){ lastErr = e0; }
+      }
+      if(!ok){
+        const hm = (lastErr && (lastErr.helpMessage || lastErr.message || lastErr.code)) || '';
+        errEl.textContent = '注册接口报错，详情见下方';
+        if(dbg0) dbg0.textContent = String(hm).slice(0, 1200);
+        console.error('signUp 全部候选均失败', lastErr);
+        btn.disabled = false; return;
+      }
+      try{ if(dbg0) dbg0.textContent = ''; }catch(_){}
+      console.log('signUp 成功', signUpRes);
       // signUp 成功后 SDK 通常已经是登录态了，千万不能再登一次（会被服务端打回 400）
       let logged = false;
       try{
