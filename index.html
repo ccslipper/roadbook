@@ -3901,6 +3901,7 @@ async function openRoute(routeId, routeName){
 #mshell{display:none}
 body.mobile-on #mshell{display:block;position:fixed;inset:0;z-index:9000;background:#F0F2EC;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif;color:#1B2A2E;overflow:hidden}
 body.mobile-on>.app-screen{display:none!important}
+body.mobile-on #screen-profile.active{display:flex!important;position:fixed!important;inset:0!important;z-index:9999!important}
 #mshell .ms-scr{position:absolute;inset:0;display:none;flex-direction:column}
 #mshell .ms-scr.on{display:flex}
 #mshell .ms-head{flex:0 0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px;background:#fff;box-shadow:0 2px 12px rgba(27,42,46,.06)}
@@ -3930,7 +3931,14 @@ body.mobile-on>.app-screen{display:none!important}
 #mshell .ms-in{width:100%;box-sizing:border-box;border:1px solid #DDE2D8;background:#FBFBF9;border-radius:12px;padding:11px 12px;font-size:14px;outline:none;font-family:inherit}
 #mshell .ms-relay{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 78px);display:none;align-items:center;gap:10px;background:#33454A;border-radius:16px;padding:11px 12px 11px 14px;box-shadow:0 10px 26px rgba(27,42,46,.24);z-index:30}
 #mshell .ms-relay.on{display:flex}
-#msSwitch{position:fixed;right:10px;bottom:10px;z-index:9500;border:1px solid #DDE2D8;background:rgba(255,255,255,.95);color:#33454A;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600;box-shadow:0 4px 14px rgba(27,42,46,.12)}
+#msSwitch{display:none}
+body.ms-recommend-open #screen-editor{display:block!important}
+body.ms-recommend-open #screen-editor>*:not(#mapwrap){display:none!important}
+body.ms-recommend-open #mapwrap>*:not(#recommendPanel):not(#drawer){display:none!important}
+body.ms-recommend-open #recommendPanel{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;border-left:none!important;z-index:9999!important;display:flex!important}
+body.ms-recommend-open #drawer{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;max-height:100%!important;z-index:9999!important;transform:none!important;border-radius:0!important}
+body.ms-recommend-open #recommendPanel-head{padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
+body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
 </style>
 
 <div id="mshell">
@@ -4018,6 +4026,16 @@ body.mobile-on>.app-screen{display:none!important}
   const stopColor = s => TAGC[(s.tag||'').trim()] || (typeof DAY_COLORS_HEX!=='undefined' ? (DAY_COLORS_HEX[((s.day||1)-1)%8]||'#33454A') : '#33454A');
   const fmtMin = m => m==null ? '—' : (m>=60 ? Math.floor(m/60)+' 小时 '+(m%60)+' 分' : m+' 分');
   const segAt = i => (window.state && state.segments && state.segments[i]) || null;
+
+  const _origRecClose = document.getElementById('recommendPanel-close');
+  if(_origRecClose) _origRecClose.addEventListener('click', ()=>{ document.body.classList.remove('ms-recommend-open'); });
+  const _origDrawerClose = document.getElementById('drawer-close');
+  if(_origDrawerClose) _origDrawerClose.addEventListener('click', ()=>{ document.body.classList.remove('ms-recommend-open'); });
+
+  function openSegmentPanel(i){
+    document.body.classList.add('ms-recommend-open');
+    if(typeof openDrawerForSegment==='function') openDrawerForSegment(i);
+  }
 
   function isMobile(){
     const f = localStorage.getItem('rb_force_view');
@@ -4219,14 +4237,7 @@ body.mobile-on>.app-screen{display:none!important}
   function bindPlanBody(){
     const body = $('msPlanBody');
     body.querySelectorAll('[data-stop]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); openSheet(+el.dataset.stop); }));
-    body.querySelectorAll('[data-seg]').forEach(el=>el.addEventListener('click', e=>{
-      e.stopPropagation();
-      if(typeof openDrawerForSegment==='function'){
-        document.body.classList.remove('mobile-on');
-        openDrawerForSegment(+el.dataset.seg);
-        if(typeof toast==='function') toast('沿途推荐用的是电脑版面板，加完点右下角「手机版」回来');
-      }
-    }));
+    body.querySelectorAll('[data-seg]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); openSegmentPanel(+el.dataset.seg); }));
     body.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); navFrom(+el.dataset.nav); }));
     body.querySelectorAll('[data-add]').forEach(el=>el.addEventListener('click', ()=>addStopOnDay(+el.dataset.add)));
   }
@@ -4289,10 +4300,7 @@ body.mobile-on>.app-screen{display:none!important}
       state.currentIndex = i; saveState(); mRiding = true; closeSheet(); renderPlan();
     });
     const sg = pane.querySelector('[data-seg2]');
-    if(sg) sg.addEventListener('click', ()=>{
-      closeSheet();
-      if(typeof openDrawerForSegment==='function'){ document.body.classList.remove('mobile-on'); openDrawerForSegment(i); }
-    });
+    if(sg) sg.addEventListener('click', ()=>{ closeSheet(); openSegmentPanel(i); });
     const del = pane.querySelector('[data-del]');
     if(del) del.addEventListener('click', ()=>{
       if(!confirm('删除「'+s.name+'」？')) return;
@@ -4318,9 +4326,10 @@ body.mobile-on>.app-screen{display:none!important}
     saveState(); renderPlan();
   });
   $('msShareBtn').addEventListener('click', ()=>{
+    document.body.classList.add('ms-recommend-open');
     const b=document.getElementById('shareBtn');
-    if(b){ document.body.classList.remove('mobile-on'); b.click(); }
-    else if(typeof toast==='function') toast('分享按钮在电脑版顶栏');
+    if(b) b.click();
+    else { document.body.classList.remove('ms-recommend-open'); if(typeof toast==='function') toast('这个版本没找到分享按钮'); }
   });
 
   async function renderPlaza(){
@@ -4359,12 +4368,10 @@ body.mobile-on>.app-screen{display:none!important}
     const u = (window.cbAuth && cbAuth.currentUser) || null;
     $('msMeSub').textContent = u ? ('已登录 · '+(u.username||u.name||u.phone_number||'')) : '未登录';
     $('msMeBody').innerHTML = '<div class="ms-card" data-me="profile"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">个人信息</div><div class="ms-sub">昵称、头像</div></div><div style="color:#B4BDB4">›</div></div></div>'
-      + '<div class="ms-card" data-me="desktop"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">切到电脑版</div><div class="ms-sub">地图规划、批量加点、上传照片</div></div><div style="color:#B4BDB4">›</div></div></div>'
       + '<button class="ms-btn ghost" data-me="logout" style="width:100%;margin-top:6px;color:#B94A3C;border-color:#E7D4CE">退出登录</button>';
     $('msMeBody').querySelectorAll('[data-me]').forEach(el=>el.addEventListener('click', ()=>{
       const k = el.dataset.me;
-      if(k==='profile'){ const b=document.getElementById('profileBtn'); if(b){ document.body.classList.remove('mobile-on'); b.click(); } }
-      if(k==='desktop'){ localStorage.setItem('rb_force_view','desktop'); applyShell(); }
+      if(k==='profile'){ const b=document.getElementById('profileBtn'); if(b) b.click(); }
       if(k==='logout'){ const b=document.getElementById('logoutBtn'); if(b) b.click(); }
     }));
   }
