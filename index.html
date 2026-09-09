@@ -140,6 +140,96 @@
   .badge-ok{background:#E6F4EC;color:#2C7A52;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;}
   .badge-wait{background:#FCF0E6;color:#A9652B;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;}
 
+  /* ---------- 游记 ---------- */
+  #screen-travelogue{align-items:stretch;justify-content:flex-start;}
+  #tl-topbar{
+    flex:0 0 auto;display:flex;align-items:center;gap:10px;
+    padding:12px 18px;background:var(--d0);color:#F0F2EC;
+  }
+  #tlBackBtn{background:none;border:none;color:#fff;font-size:19px;cursor:pointer;padding:2px 6px;}
+  #tlTitleInput{
+    background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;
+    border-radius:6px;padding:7px 10px;font-size:14px;font-weight:700;width:240px;max-width:40vw;
+  }
+  #tlTitleInput::placeholder{color:#B9C4C0;}
+  #tlSaveStatus{font-size:11px;color:#9FE3B0;white-space:nowrap;}
+  #tl-main{flex:1 1 auto;display:flex;min-height:0;}
+  #tl-editor-col{width:400px;flex:0 0 400px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;}
+  #tl-editor-head{padding:14px 16px 10px;border-bottom:1px solid var(--line);flex:0 0 auto;}
+  #tl-editor-head .title{font-size:14px;font-weight:700;}
+  #tl-editor-head .sub{font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+  #tl-entries{flex:1 1 auto;overflow-y:auto;padding:12px;}
+  #tl-preview-col{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#EAEAE2;}
+  #tl-preview-head{flex:0 0 auto;padding:10px 18px;font-size:11.5px;color:var(--ink-soft);border-bottom:1px solid var(--line);background:var(--surface);}
+  #tl-preview{flex:1 1 auto;overflow-y:auto;padding:26px;display:flex;justify-content:center;}
+
+  .tl-entry-card{
+    background:#FBFBF9;border:1px solid var(--line);border-radius:10px;
+    padding:12px;margin-bottom:10px;
+  }
+  .tl-entry-card.tl-excluded{opacity:.45;}
+  .tl-entry-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .tl-entry-badge{font-size:10px;font-weight:700;color:#fff;padding:2px 7px;border-radius:4px;flex:0 0 auto;}
+  .tl-entry-name{font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tl-entry-toggle{flex:0 0 auto;}
+  .tl-entry-sub{font-size:11px;color:var(--ink-soft);margin:-4px 0 8px;}
+  .tl-entry-text{
+    width:100%;min-height:56px;border:1px solid var(--line);border-radius:6px;
+    padding:8px;font-size:12.5px;font-family:inherit;background:#fff;resize:vertical;
+  }
+  .tl-photo-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .tl-photo-thumb{width:56px;height:56px;border-radius:6px;object-fit:cover;position:relative;}
+  .tl-photo-item{position:relative;width:56px;height:56px;}
+  .tl-photo-remove{
+    position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;
+    background:#B94A3C;color:#fff;border:none;font-size:10px;line-height:16px;cursor:pointer;padding:0;
+  }
+  .tl-photo-add{
+    width:56px;height:56px;border-radius:6px;border:1.5px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--ink-soft);
+    font-size:20px;cursor:pointer;background:#fff;
+  }
+  .tl-entry-tools{display:flex;gap:4px;margin-top:8px;}
+
+  .tl-doc{width:100%;max-width:520px;background:#fff;border-radius:4px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:36px 32px;}
+  .tl-doc h1{font-size:22px;margin:0 0 4px;}
+  .tl-doc .tl-doc-sub{font-size:12px;color:var(--ink-soft);margin-bottom:24px;}
+  .tl-doc-section{margin-bottom:22px;}
+  .tl-doc-section .tl-doc-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .tl-doc-section .tl-doc-text{font-size:13.5px;line-height:1.8;color:#333;white-space:pre-wrap;}
+  .tl-doc-photos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0;}
+  .tl-doc-photos img{width:100%;height:140px;object-fit:cover;border-radius:6px;}
+  .tl-doc-connector{font-size:11.5px;color:var(--ink-soft);margin:8px 0;padding-left:2px;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #tl-preview, #tl-preview *{visibility:visible;}
+    #tl-preview{position:absolute;left:0;top:0;width:100%;padding:0;}
+    .tl-doc{box-shadow:none;max-width:100%;}
+  }
+  /* ---------- 我的游记（列表） ---------- */
+  #tll-topbar{
+    flex:0 0 auto;display:flex;align-items:center;gap:12px;
+    padding:14px 20px;background:var(--d0);color:#F0F2EC;
+  }
+  #tll-topbar h1{font-size:19px;margin:0;}
+  #tll-topbar .spacer{flex:1;}
+  #tll-topbar .btn.ghost{border-color:rgba(255,255,255,.35);color:#fff;}
+  #tll-main{flex:1 1 auto;display:flex;min-height:0;}
+  #tll-side{width:100%;flex:1 1 auto;background:var(--surface);display:flex;flex-direction:column;min-height:0;align-items:center;}
+  #tll-side #tll-side-head, #tll-side #travelogue-list-items, #tll-side #tll-side-foot{width:100%;max-width:640px;}
+  #tll-side-head{padding:14px 16px 10px;border-bottom:1px solid var(--line);}
+  #tll-side-head .title{font-size:14px;font-weight:700;}
+  #tll-side-head .sub{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  #travelogue-list-items{flex:1 1 auto;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;}
+  #tll-side-foot{flex:0 0 auto;padding:10px 14px;border-top:1px solid var(--line);}
+
+  /* ---------- 广场：公开标签 & 分段 tab ---------- */
+  .plaza-tabs{display:flex;gap:6px;background:#F0F2EC;border-radius:12px;padding:4px;margin-bottom:12px;}
+  .plaza-tabs button{flex:1;border:none;background:none;border-radius:9px;padding:9px 0;font-size:13px;font-weight:600;color:#8A968F;cursor:pointer;}
+  .plaza-tabs button.on{background:#fff;color:#1B2A2E;box-shadow:0 2px 8px rgba(27,42,46,.1);}
+  .plaza-public-badge{display:inline-block;background:#E6F4EC;color:#2C7A52;border-radius:20px;padding:2px 9px;font-size:10.5px;font-weight:700;margin-left:6px;vertical-align:middle;}
+
   /* ---------- top bar ---------- */
   #topbar{
     flex:0 0 auto;
@@ -599,6 +689,7 @@
   <div id="rl-topbar">
     <h1>我的路书</h1>
     <div class="spacer"></div>
+    <button class="btn ghost small" id="goTravelogueListBtn">📝 我的游记</button>
     <button class="btn ghost small" id="goProfileBtn">个人信息</button>
     <button class="btn ghost small" id="logoutBtn">退出登录</button>
   </div>
@@ -749,6 +840,54 @@
 </div>
 <input type="file" id="importFileInput" accept="application/json" style="display:none;">
 </div>
+<div id="screen-travelogue-list" class="app-screen">
+  <div id="tll-topbar">
+    <h1>我的游记</h1>
+    <div class="spacer"></div>
+    <button class="btn ghost small" id="goRouteListBtn">🧭 我的路书</button>
+    <button class="btn ghost small" id="goProfileBtn2">个人信息</button>
+    <button class="btn ghost small" id="logoutBtn3">退出登录</button>
+  </div>
+  <div id="tll-main">
+    <div id="tll-side">
+      <div id="tll-side-head">
+        <div class="title">游记列表</div>
+        <div class="sub">汇总了你所有路书下的游记，点击打开编辑</div>
+      </div>
+      <div id="travelogue-list-items" style="max-width:640px;"></div>
+      <div id="tll-side-foot" style="max-width:640px;">
+        <button class="btn" id="newTravelogueBtn" style="width:100%;">＋ 新建游记</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-travelogue" class="app-screen">
+  <div id="tl-topbar">
+    <button id="tlBackBtn" title="返回">←</button>
+    <input id="tlTitleInput" type="text" placeholder="给这篇游记起个标题">
+    <div class="spacer"></div>
+    <button class="btn ghost small" id="tlExportBtn">导出</button>
+    <button class="btn small" id="tlSaveBtn" style="background:#3E8E7E;">💾 保存</button>
+    <span id="tlSaveStatus"></span>
+  </div>
+  <div id="tl-main">
+    <div id="tl-editor-col">
+      <div id="tl-editor-head">
+        <div class="title">选取内容 · 编辑图文</div>
+        <div class="sub">开关决定要不要放进游记；文字留空会用行程备注自动填一版</div>
+        <button class="btn ghost small" id="tlAddNoteBtn" style="width:100%;margin-top:8px;">＋ 插入一段自由文字</button>
+      </div>
+      <div id="tl-entries"></div>
+    </div>
+    <div id="tl-preview-col">
+      <div id="tl-preview-head">预览 / 导出效果</div>
+      <div id="tl-preview"></div>
+    </div>
+  </div>
+</div>
+
+
 <div id="toast"></div>
 
 <script>
@@ -3353,7 +3492,7 @@ async function loadRouteList(){
     let data, error;
     try{
       ({ data, error } = await cbDb.from('roadbook')
-        .select('id,name,updated_at,share_token,data')
+        .select('id,name,updated_at,share_token,is_public,data')
         .eq('user_id', uid)
         .order('updated_at', { ascending:false }));
     }catch(e){ error = e; }
@@ -3367,6 +3506,10 @@ async function loadRouteList(){
       if(error) throw error;
     }
     loadedRoutes = data || [];
+    // buildRouteCard / renderOverviewMap read route.stops directly — fill it in
+    // from route.data.stops so the stop count and overview map keep working now
+    // that this query selects the whole `data` column instead of a sub-select.
+    loadedRoutes.forEach(r=>{ if(r && r.data && Array.isArray(r.data.stops) && !Array.isArray(r.stops)) r.stops = r.data.stops; });
     window.loadedRoutes = loadedRoutes; // `let`/`const` module-scope vars aren't auto-exposed on window — the mobile shell reads this explicitly
     window.__rbDebug = { uid: uid, stage: 'done', count: loadedRoutes.length };
     if(!loadedRoutes.length){
@@ -3540,7 +3683,16 @@ function buildRouteCard(route, colorIdx){
   shareBtn.className='icon-btn'; shareBtn.textContent='↗'; shareBtn.title='分享这条路书';
   shareBtn.addEventListener('click',(e)=>{ e.stopPropagation(); shareRoute(route, shareBtn); });
 
-  actions.appendChild(focusBtn); actions.appendChild(shareBtn); actions.appendChild(renameBtn); actions.appendChild(delBtn);
+  const journalBtn=document.createElement('button');
+  journalBtn.className='icon-btn'; journalBtn.textContent='📝'; journalBtn.title='游记';
+  journalBtn.addEventListener('click',(e)=>{ e.stopPropagation(); showTravelogueListFor(route); });
+
+  if(route.is_public){
+    const badge=document.createElement('span'); badge.className='plaza-public-badge'; badge.textContent='已发布';
+    nm.appendChild(badge);
+  }
+
+  actions.appendChild(focusBtn); actions.appendChild(journalBtn); actions.appendChild(shareBtn); actions.appendChild(renameBtn); actions.appendChild(delBtn);
   card.appendChild(main); card.appendChild(actions);
   card.addEventListener('click', ()=> openRoute(route.id, route.name));
   card.addEventListener('mouseenter', ()=> highlightRouteCard(route.id, true));
@@ -3669,7 +3821,7 @@ async function shareRoute(route, btn){
     const link = location.origin + location.pathname + '?share=' + token;
     let copied=false;
     try{ await navigator.clipboard.writeText(link); copied=true; }catch(e){ copied=false; }
-    showShareDialog(route.name||'未命名路书', link, copied);
+    showShareDialog(route, link, copied);
   }catch(e){
     toast('生成分享链接失败：'+(e.message||''));
   }finally{
@@ -3677,7 +3829,26 @@ async function shareRoute(route, btn){
   }
 }
 
-function showShareDialog(name, link, copied){
+/* 广场公开开关：is_public 是 roadbook 表的顶层字段（不是 data 里的子字段），
+   这样后台既可以用一个云函数 list_shared_routes() 做全量+前端过滤，也可以
+   在只把 RLS 改成"is_public=true 的行任何人可读"之后，前端直接按列查询
+   （见 renderPlaza 里的兜底逻辑），不强依赖云函数是否已经部署。 */
+async function setRoutePublic(route, on){
+  try{
+    const { error } = await cbDb.from('roadbook')
+      .update({ is_public: !!on })
+      .eq('id', route.id).eq('user_id', getCurrentUid());
+    if(error) throw error;
+    route.is_public = !!on;
+    return true;
+  }catch(e){
+    toast('更新广场状态失败：'+(e.message||''));
+    return false;
+  }
+}
+
+function showShareDialog(route, link, copied){
+  const name = route.name || '未命名路书';
   const overlay=document.createElement('div');
   // when the mobile app shell is showing (#mshell sits at z-index:9000), this
   // modal needs to outrank it or it renders invisibly behind the shell
@@ -3708,6 +3879,30 @@ function showShareDialog(name, link, copied){
   closeBtn.addEventListener('click', ()=> overlay.remove());
   row.appendChild(copyBtn); row.appendChild(closeBtn);
   panel.appendChild(row);
+
+  const plazaDivider=document.createElement('div');
+  plazaDivider.style.cssText='height:1px;background:var(--line);margin:14px 0 12px;';
+  panel.appendChild(plazaDivider);
+  const plazaRow=document.createElement('label');
+  plazaRow.style.cssText='display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--ink);cursor:pointer;line-height:1.6;';
+  const plazaCb=document.createElement('input');
+  plazaCb.type='checkbox'; plazaCb.checked = !!route.is_public;
+  plazaCb.style.cssText='margin-top:2px;flex:0 0 auto;';
+  const plazaTxt=document.createElement('span');
+  plazaTxt.innerHTML='同时发布到<b>路书广场</b>——所有人都能在广场直接看到、抄一份，不需要这个链接';
+  plazaRow.appendChild(plazaCb); plazaRow.appendChild(plazaTxt);
+  panel.appendChild(plazaRow);
+  const plazaMsg=document.createElement('div');
+  plazaMsg.style.cssText='font-size:11px;color:#5B6B67;margin-top:6px;min-height:14px;';
+  panel.appendChild(plazaMsg);
+  plazaCb.addEventListener('change', async ()=>{
+    plazaCb.disabled=true;
+    const ok = await setRoutePublic(route, plazaCb.checked);
+    plazaCb.disabled=false;
+    if(ok) plazaMsg.textContent = plazaCb.checked? '已发布到广场' : '已从广场撤下（分享链接仍然有效）';
+    else plazaCb.checked = !plazaCb.checked;
+  });
+
   overlay.appendChild(panel);
   overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.remove(); });
   document.body.appendChild(overlay);
@@ -3772,21 +3967,676 @@ function showAcceptShareDialog(row){
   document.body.appendChild(overlay);
 }
 
+/* ============================================================
+   游记模块 —— 独立于路书本身：创建时把路书当前的点位/路段拍一份
+   快照存进 travelogues 表，之后在这里怎么增删改选片段、传图、写字，
+   都只改这份快照，原路书那边的数据完全不受影响。
+============================================================ */
+let currentTravelogue = null; // {id, title, route_id, route_name, data:{entries:[...]}}
+let tlSaveTimer = null;
+
+function tlEntryColor(type){
+  return type==='point' ? '#1D6FA5' : type==='segment' ? '#7A7568' : '#8B5CF6';
+}
+function tlEntryBadgeText(type){
+  return type==='point' ? '点位' : type==='segment' ? '路段' : '文字';
+}
+
+function buildEntriesFromRouteData(data){
+  const stops = data.stops||[];
+  const segments = data.segments||[];
+  const entries=[];
+  stops.forEach((s,i)=>{
+    entries.push({
+      id:'e'+i+'p'+Date.now()%100000+Math.random().toString(36).slice(2,4),
+      type:'point',
+      name: s.name,
+      subtitle: (s.day===0?'出发':'第 '+s.day+' 天')+(s.tag?'　'+s.tag:''),
+      text: s.note||'',
+      photos: s.photo? [s.photo] : [],
+      included: true
+    });
+    if(i<stops.length-1){
+      const seg = segments[i];
+      const km = seg&&seg.km!=null? seg.km:null;
+      const min = seg&&seg.min!=null? seg.min:null;
+      entries.push({
+        id:'e'+i+'s'+Date.now()%100000+Math.random().toString(36).slice(2,4),
+        type:'segment',
+        name: s.name+' → '+stops[i+1].name,
+        subtitle: km!=null? (km.toFixed(1)+'公里 · '+fmtMin(min)) : '',
+        text:'',
+        photos:[],
+        included: false // 路段默认不带进游记，写了内容再手动打开
+      });
+    }
+  });
+  return entries;
+}
+
+async function showTravelogueListFor(route){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const panel=document.createElement('div');
+  panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:400px;box-shadow:0 10px 34px rgba(0,0,0,.3);max-height:80vh;overflow-y:auto;';
+  panel.innerHTML = '<div style="font-size:16px;font-weight:700;margin-bottom:2px;">《'+escapeHtmlFull(route.name||'未命名路书')+'》的游记</div>'
+    + '<div style="font-size:11.5px;color:#5B6B67;margin-bottom:14px;">游记是独立的一份图文，在这里改点位/路段不会影响原路书</div>';
+  const listWrap=document.createElement('div');
+  listWrap.innerHTML = '<div class="rc-empty">加载中…</div>';
+  panel.appendChild(listWrap);
+  const newBtn=document.createElement('button');
+  newBtn.className='btn small'; newBtn.style.cssText='width:100%;margin-top:12px;';
+  newBtn.textContent='＋ 新建一篇游记';
+  newBtn.addEventListener('click', async ()=>{
+    newBtn.disabled=true; newBtn.textContent='创建中…';
+    try{
+      tlBackScreen = 'screen-routelist';
+      await createTravelogueFromRoute(route);
+      overlay.remove();
+    }catch(e){
+      toast('创建失败：'+(e.message||''));
+      newBtn.disabled=false; newBtn.textContent='＋ 新建一篇游记';
+    }
+  });
+  panel.appendChild(newBtn);
+  const closeBtn=document.createElement('button');
+  closeBtn.className='btn ghost small'; closeBtn.style.cssText='width:100%;margin-top:8px;';
+  closeBtn.textContent='关闭';
+  closeBtn.addEventListener('click', ()=> overlay.remove());
+  panel.appendChild(closeBtn);
+  overlay.appendChild(panel);
+  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+
+  try{
+    const uid = getCurrentUid();
+    const { data, error } = await cbDb.from('travelogues')
+      .select('id,title,updated_at')
+      .eq('route_id', route.id).eq('user_id', uid)
+      .order('updated_at', {ascending:false});
+    if(error) throw error;
+    if(!data || !data.length){
+      listWrap.innerHTML = '<div class="rc-empty">这条路书还没有游记</div>';
+      return;
+    }
+    listWrap.innerHTML='';
+    data.forEach(tl=>{
+      const item=document.createElement('div');
+      item.className='ps-item';
+      item.style.cursor='pointer';
+      const nm=document.createElement('div'); nm.className='ps-name'; nm.textContent=tl.title||'未命名游记';
+      const meta=document.createElement('div'); meta.className='ps-addr';
+      meta.textContent = tl.updated_at? '更新于 '+new Date(tl.updated_at).toLocaleDateString() : '';
+      item.appendChild(nm); item.appendChild(meta);
+      item.addEventListener('click', ()=>{ overlay.remove(); tlBackScreen='screen-routelist'; openTravelogueEditor(tl.id); });
+      listWrap.appendChild(item);
+    });
+  }catch(e){
+    listWrap.innerHTML = '<div class="rc-empty">加载失败：'+(e.message||'')+'</div>';
+  }
+}
+
+async function createTravelogueFromRoute(route){
+  const uid = getCurrentUid();
+  const { data: full, error: err1 } = await cbDb.from('roadbook').select('id,name,data').eq('id', route.id).eq('user_id', uid).single();
+  if(err1) throw err1;
+  const entries = buildEntriesFromRouteData(full.data || {});
+  const row = {
+    user_id: uid,
+    route_id: route.id,
+    route_name: full.name || '未命名路书',
+    title: (full.name||'未命名路书') + ' · 游记',
+    data: { entries }
+  };
+  const { data, error } = await cbDb.from('travelogues').insert(row).select().single();
+  if(error) throw error;
+  openTravelogueEditor(data.id);
+}
+
+async function openTravelogueEditor(travelogueId){
+  try{
+    const uid = getCurrentUid();
+    const { data, error } = await cbDb.from('travelogues').select('*').eq('id', travelogueId).eq('user_id', uid).single();
+    if(error) throw error;
+    if(!data.data || !Array.isArray(data.data.entries)) data.data = { entries: [] };
+    currentTravelogue = data;
+    showScreen('screen-travelogue');
+    renderTravelogueEditor();
+  }catch(e){
+    toast('打开游记失败：'+(e.message||''));
+  }
+}
+
+/* ---------- 我的游记：汇总所有路书下的游记，不用逐条路书进去找 ---------- */
+async function loadAllTravelogues(){
+  const wrap = document.getElementById('travelogue-list-items');
+  wrap.innerHTML = '<div class="rc-empty">加载中…</div>';
+  try{
+    const uid = getCurrentUid();
+    if(!uid){
+      wrap.innerHTML = '<div class="rc-empty">登录状态读取失败，请退出重新登录</div>';
+      return;
+    }
+    const { data, error } = await cbDb.from('travelogues')
+      .select('id,title,route_id,route_name,updated_at,is_public')
+      .eq('user_id', uid)
+      .order('updated_at', { ascending:false });
+    if(error) throw error;
+    if(!data || !data.length){
+      wrap.innerHTML = '<div class="rc-empty">还没有游记<br>点下面"新建游记"开始吧</div>';
+      return;
+    }
+    wrap.innerHTML='';
+    data.forEach(tl=> wrap.appendChild(buildTravelogueListCard(tl)));
+  }catch(e){
+    wrap.innerHTML = '<div class="rc-empty">加载失败：'+(e.message||'请刷新重试')+'</div>';
+  }
+}
+
+function buildTravelogueListCard(tl){
+  const card=document.createElement('div');
+  card.className='route-card';
+
+  const main=document.createElement('div'); main.className='rc-main';
+  const nm=document.createElement('div'); nm.className='rc-name'; nm.textContent=tl.title||'未命名游记';
+  const meta=document.createElement('div'); meta.className='rc-meta';
+  meta.textContent = '来自《'+(tl.route_name||'未命名路书')+'》'
+    + (tl.updated_at? '　·　'+new Date(tl.updated_at).toLocaleDateString() : '');
+  if(tl.is_public){
+    const badge=document.createElement('span'); badge.className='plaza-public-badge'; badge.textContent='已发布';
+    nm.appendChild(badge);
+  }
+  main.appendChild(nm); main.appendChild(meta);
+
+  const actions=document.createElement('div'); actions.className='rc-actions';
+
+  const renameBtn=document.createElement('button');
+  renameBtn.className='icon-btn'; renameBtn.textContent='✎'; renameBtn.title='重命名';
+  renameBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const input=document.createElement('input');
+    input.type='text'; input.value=tl.title||'';
+    input.style.cssText='font-size:14px;font-weight:700;width:100%;border:1px solid var(--accent);border-radius:5px;padding:2px 6px;';
+    input.addEventListener('click', ev=> ev.stopPropagation());
+    input.addEventListener('mousedown', ev=> ev.stopPropagation());
+    main.replaceChild(input, nm);
+    input.focus(); input.select();
+    async function commit(){
+      const newTitle = input.value.trim() || '未命名游记';
+      nm.textContent = newTitle;
+      main.replaceChild(nm, input);
+      try{
+        const uid = getCurrentUid();
+        await cbDb.from('travelogues').update({ title:newTitle, updated_at:new Date().toISOString() }).eq('id', tl.id).eq('user_id', uid);
+        tl.title = newTitle;
+      }catch(err){ toast('改名失败：'+(err.message||'')); }
+    }
+    input.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); commit(); } });
+    input.addEventListener('blur', commit);
+  });
+
+  const delBtn=document.createElement('button');
+  delBtn.className='icon-btn'; delBtn.textContent='✕'; delBtn.title='删除';
+  let delArmed=false, delTimer=null;
+  delBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if(!delArmed){
+      delArmed=true; delBtn.textContent='确认?'; delBtn.style.color='#B94A3C';
+      delTimer=setTimeout(()=>{ delArmed=false; delBtn.textContent='✕'; delBtn.style.color=''; }, 4000);
+      return;
+    }
+    clearTimeout(delTimer);
+    Promise.resolve(getCurrentUid()).then(uid=> cbDb.from('travelogues').delete().eq('id', tl.id).eq('user_id', uid)).then(({error})=>{
+      if(error){ toast('删除失败：'+error.message); return; }
+      toast('已删除「'+(tl.title||'未命名游记')+'」');
+      loadAllTravelogues();
+    });
+  });
+
+  actions.appendChild(renameBtn); actions.appendChild(delBtn);
+  card.appendChild(main); card.appendChild(actions);
+  card.addEventListener('click', ()=>{ tlBackScreen='screen-travelogue-list'; openTravelogueEditor(tl.id); });
+  return card;
+}
+
+/* "新建游记"：先让用户选一条要关联的路书，选完照原来的快照逻辑走 */
+async function showRoutePickerForNewTravelogue(){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const panel=document.createElement('div');
+  panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:400px;box-shadow:0 10px 34px rgba(0,0,0,.3);max-height:80vh;overflow-y:auto;';
+  panel.innerHTML = '<div style="font-size:16px;font-weight:700;margin-bottom:2px;">新建游记</div>'
+    + '<div style="font-size:11.5px;color:#5B6B67;margin-bottom:14px;">选一条要关联的路书，游记会拍一份当前路书的快照，之后独立编辑</div>';
+  const listWrap=document.createElement('div');
+  listWrap.innerHTML = '<div class="rc-empty">加载中…</div>';
+  panel.appendChild(listWrap);
+  const closeBtn=document.createElement('button');
+  closeBtn.className='btn ghost small'; closeBtn.style.cssText='width:100%;margin-top:12px;';
+  closeBtn.textContent='取消';
+  closeBtn.addEventListener('click', ()=> overlay.remove());
+  panel.appendChild(closeBtn);
+  overlay.appendChild(panel);
+  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+
+  try{
+    const uid = getCurrentUid();
+    const { data, error } = await cbDb.from('roadbook')
+      .select('id,name,updated_at')
+      .eq('user_id', uid)
+      .order('updated_at', { ascending:false });
+    if(error) throw error;
+    if(!data || !data.length){
+      listWrap.innerHTML = '<div class="rc-empty">还没有路书，先去"我的路书"建一条</div>';
+      return;
+    }
+    listWrap.innerHTML='';
+    data.forEach(route=>{
+      const item=document.createElement('div');
+      item.className='ps-item';
+      item.style.cursor='pointer';
+      const nm=document.createElement('div'); nm.className='ps-name'; nm.textContent=route.name||'未命名路书';
+      const meta=document.createElement('div'); meta.className='ps-addr';
+      meta.textContent = route.updated_at? '更新于 '+new Date(route.updated_at).toLocaleDateString() : '';
+      item.appendChild(nm); item.appendChild(meta);
+      item.addEventListener('click', async ()=>{
+        item.style.opacity='.5';
+        try{
+          tlBackScreen = 'screen-travelogue-list';
+          await createTravelogueFromRoute(route);
+          overlay.remove();
+        }catch(e){
+          item.style.opacity='';
+          toast('创建失败：'+(e.message||''));
+        }
+      });
+      listWrap.appendChild(item);
+    });
+  }catch(e){
+    listWrap.innerHTML = '<div class="rc-empty">加载失败：'+(e.message||'')+'</div>';
+  }
+}
+document.getElementById('newTravelogueBtn').addEventListener('click', showRoutePickerForNewTravelogue);
+
+function tlSaveState(){
+  clearTimeout(tlSaveTimer);
+  tlSaveTimer = setTimeout(()=> tlDoSave(false), 500);
+}
+async function tlDoSave(manual){
+  if(!currentTravelogue) return;
+  try{
+    const uid = getCurrentUid();
+    const { error } = await cbDb.from('travelogues')
+      .update({ title: currentTravelogue.title, data: currentTravelogue.data, updated_at: new Date().toISOString() })
+      .eq('id', currentTravelogue.id).eq('user_id', uid);
+    const ok = !error;
+    if(manual){
+      const el = document.getElementById('tlSaveStatus');
+      const t = new Date();
+      el.textContent = ok? `已保存 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` : '保存失败';
+      el.style.color = ok? '#9FE3B0' : '#FFB4A6';
+      if(!ok) toast('保存失败：'+(error&&error.message||''));
+    }
+  }catch(e){
+    if(manual) toast('保存失败：'+(e.message||''));
+  }
+}
+
+let tlBackScreen = 'screen-routelist';
+document.getElementById('tlBackBtn').addEventListener('click', ()=>{
+  currentTravelogue = null;
+  showScreen(tlBackScreen);
+  if(tlBackScreen==='screen-travelogue-list') loadAllTravelogues();
+});
+document.getElementById('tlTitleInput').addEventListener('input', (e)=>{
+  if(!currentTravelogue) return;
+  currentTravelogue.title = e.target.value;
+  tlSaveState();
+});
+document.getElementById('tlSaveBtn').addEventListener('click', ()=> tlDoSave(true));
+
+function compressImageFile(file, maxSize){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w=img.width, h=img.height;
+        if(w>h && w>maxSize){ h=Math.round(h*maxSize/w); w=maxSize; }
+        else if(h>=w && h>maxSize){ w=Math.round(w*maxSize/h); h=maxSize; }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = ()=> reject(new Error('图片读取失败'));
+      img.src = reader.result;
+    };
+    reader.onerror = ()=> reject(new Error('文件读取失败'));
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('tlAddNoteBtn').addEventListener('click', ()=>{
+  if(!currentTravelogue) return;
+  currentTravelogue.data.entries.push({
+    id:'e'+Date.now()+Math.random().toString(36).slice(2,4),
+    type:'note', name:'一段文字', subtitle:'', text:'', photos:[], included:true
+  });
+  tlSaveState();
+  renderTravelogueEditor();
+});
+
+function buildTlEntryCard(entry, idx){
+  const card=document.createElement('div');
+  card.className='tl-entry-card'+(entry.included?'':' tl-excluded');
+
+  const top=document.createElement('div'); top.className='tl-entry-top';
+  const badge=document.createElement('span'); badge.className='tl-entry-badge';
+  badge.style.background=tlEntryColor(entry.type);
+  badge.textContent=tlEntryBadgeText(entry.type);
+  top.appendChild(badge);
+
+  let nameEl;
+  if(entry.type==='note'){
+    nameEl=document.createElement('input');
+    nameEl.type='text'; nameEl.className='tl-entry-name'; nameEl.style.cssText='border:none;background:none;padding:0;';
+    nameEl.value=entry.name;
+    nameEl.addEventListener('input', ()=>{ entry.name=nameEl.value; tlSaveState(); });
+  } else {
+    nameEl=document.createElement('div'); nameEl.className='tl-entry-name'; nameEl.textContent=entry.name;
+  }
+  top.appendChild(nameEl);
+
+  const toggle=document.createElement('input');
+  toggle.type='checkbox'; toggle.className='tl-entry-toggle'; toggle.checked=entry.included;
+  toggle.title='放进游记';
+  toggle.addEventListener('change', ()=>{ entry.included=toggle.checked; card.classList.toggle('tl-excluded', !entry.included); tlSaveState(); renderTlPreview(); });
+  top.appendChild(toggle);
+  card.appendChild(top);
+
+  if(entry.subtitle){
+    const sub=document.createElement('div'); sub.className='tl-entry-sub'; sub.textContent=entry.subtitle;
+    card.appendChild(sub);
+  }
+
+  const ta=document.createElement('textarea');
+  ta.className='tl-entry-text';
+  ta.placeholder = entry.type==='segment' ? '这一路上的事，留空就只显示公里数' : '写点什么，留空会用原来的备注';
+  ta.value = entry.text||'';
+  ta.addEventListener('input', ()=>{ entry.text=ta.value; tlSaveState(); renderTlPreview(); });
+  card.appendChild(ta);
+
+  const photoRow=document.createElement('div'); photoRow.className='tl-photo-row';
+  (entry.photos||[]).forEach((src, pIdx)=>{
+    const item=document.createElement('div'); item.className='tl-photo-item';
+    const img=document.createElement('img'); img.className='tl-photo-thumb'; img.src=src;
+    const rm=document.createElement('button'); rm.className='tl-photo-remove'; rm.textContent='✕';
+    rm.addEventListener('click', ()=>{ entry.photos.splice(pIdx,1); tlSaveState(); renderTravelogueEditor(); });
+    item.appendChild(img); item.appendChild(rm);
+    photoRow.appendChild(item);
+  });
+  const addPhoto=document.createElement('div'); addPhoto.className='tl-photo-add'; addPhoto.textContent='＋';
+  addPhoto.addEventListener('click', ()=>{
+    const input=document.createElement('input');
+    input.type='file'; input.accept='image/*'; input.multiple=true; input.style.display='none';
+    input.addEventListener('change', async ()=>{
+      const files = Array.from(input.files||[]);
+      for(const f of files){
+        try{
+          const dataUrl = await compressImageFile(f, 1000);
+          entry.photos = entry.photos||[];
+          entry.photos.push(dataUrl);
+        }catch(e){ toast('这张图片处理失败：'+(e.message||'')); }
+      }
+      tlSaveState();
+      renderTravelogueEditor();
+    });
+    document.body.appendChild(input);
+    input.click();
+    setTimeout(()=> input.remove(), 3000);
+  });
+  photoRow.appendChild(addPhoto);
+  card.appendChild(photoRow);
+
+  const tools=document.createElement('div'); tools.className='tl-entry-tools';
+  const upBtn=document.createElement('button'); upBtn.className='icon-btn'; upBtn.textContent='↑';
+  upBtn.addEventListener('click', ()=>{
+    if(idx<=0) return;
+    const arr=currentTravelogue.data.entries;
+    [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
+    tlSaveState(); renderTravelogueEditor();
+  });
+  const downBtn=document.createElement('button'); downBtn.className='icon-btn'; downBtn.textContent='↓';
+  downBtn.addEventListener('click', ()=>{
+    const arr=currentTravelogue.data.entries;
+    if(idx>=arr.length-1) return;
+    [arr[idx+1],arr[idx]]=[arr[idx],arr[idx+1]];
+    tlSaveState(); renderTravelogueEditor();
+  });
+  const delBtn=document.createElement('button'); delBtn.className='icon-btn'; delBtn.textContent='✕'; delBtn.title='从游记里移除（不影响原路书）';
+  delBtn.addEventListener('click', ()=>{
+    currentTravelogue.data.entries.splice(idx,1);
+    tlSaveState(); renderTravelogueEditor();
+  });
+  tools.appendChild(upBtn); tools.appendChild(downBtn); tools.appendChild(delBtn);
+  card.appendChild(tools);
+
+  return card;
+}
+
+function renderTravelogueEditor(){
+  document.getElementById('tlTitleInput').value = currentTravelogue.title || '';
+  document.getElementById('tlSaveStatus').textContent = '';
+  const wrap = document.getElementById('tl-entries');
+  wrap.innerHTML='';
+  if(!currentTravelogue.data.entries.length){
+    wrap.innerHTML = '<div class="ps-empty">还没有内容，点上面"插入一段自由文字"开始写</div>';
+  } else {
+    currentTravelogue.data.entries.forEach((entry, idx)=> wrap.appendChild(buildTlEntryCard(entry, idx)));
+  }
+  renderTlPreview();
+}
+
+function renderTlPreview(){
+  const wrap = document.getElementById('tl-preview');
+  wrap.innerHTML='';
+  const doc=document.createElement('div'); doc.className='tl-doc';
+  const h1=document.createElement('h1'); h1.textContent = currentTravelogue.title || '未命名游记';
+  doc.appendChild(h1);
+  const sub=document.createElement('div'); sub.className='tl-doc-sub';
+  sub.textContent = '来自路书《'+(currentTravelogue.route_name||'')+'》';
+  doc.appendChild(sub);
+
+  const included = currentTravelogue.data.entries.filter(e=>e.included);
+  if(!included.length){
+    const empty=document.createElement('div'); empty.className='ps-empty'; empty.textContent='还没有选中任何内容，左边把开关打开试试';
+    doc.appendChild(empty);
+  }
+  included.forEach(entry=>{
+    if(entry.type==='segment'){
+      const conn=document.createElement('div'); conn.className='tl-doc-connector';
+      conn.textContent = '↓ '+entry.name+(entry.subtitle? '　'+entry.subtitle:'');
+      doc.appendChild(conn);
+      if(entry.text){
+        const t=document.createElement('div'); t.className='tl-doc-text'; t.textContent=entry.text;
+        doc.appendChild(t);
+      }
+      if(entry.photos && entry.photos.length){
+        const grid=document.createElement('div'); grid.className='tl-doc-photos';
+        entry.photos.forEach(src=>{ const img=document.createElement('img'); img.src=src; grid.appendChild(img); });
+        doc.appendChild(grid);
+      }
+      return;
+    }
+    const section=document.createElement('div'); section.className='tl-doc-section';
+    if(entry.type==='point'){
+      const nm=document.createElement('div'); nm.className='tl-doc-name'; nm.textContent=entry.name;
+      section.appendChild(nm);
+    }
+    if(entry.photos && entry.photos.length){
+      const grid=document.createElement('div'); grid.className='tl-doc-photos';
+      entry.photos.forEach(src=>{ const img=document.createElement('img'); img.src=src; grid.appendChild(img); });
+      section.appendChild(grid);
+    }
+    if(entry.text){
+      const t=document.createElement('div'); t.className='tl-doc-text'; t.textContent=entry.text;
+      section.appendChild(t);
+    }
+    doc.appendChild(section);
+  });
+  wrap.appendChild(doc);
+}
+
+/* ---------- 导出：PDF（走浏览器打印） / 小红书文案 ---------- */
+document.getElementById('tlExportBtn').addEventListener('click', ()=> showTlExportPanel());
+
+function buildXhsText(){
+  const included = currentTravelogue.data.entries.filter(e=>e.included);
+  const lines = ['✨ '+(currentTravelogue.title||'未命名游记'), ''];
+  included.forEach(entry=>{
+    if(entry.type==='point'){
+      lines.push('📍 '+entry.name);
+      if(entry.text) lines.push(entry.text);
+      lines.push('');
+    } else if(entry.type==='segment'){
+      if(entry.text){ lines.push('🚗 '+entry.name+(entry.subtitle?'（'+entry.subtitle+'）':'')); lines.push(entry.text); lines.push(''); }
+    } else {
+      if(entry.text){ lines.push(entry.text); lines.push(''); }
+    }
+  });
+  const tags = new Set();
+  if(currentTravelogue.route_name) tags.add('#'+currentTravelogue.route_name.replace(/\s+/g,''));
+  included.forEach(e=>{ if(e.type==='point') tags.add('#'+e.name.replace(/[·\s]+/g,'')); });
+  lines.push(Array.from(tags).slice(0,10).join(' '));
+  return lines.join('\n');
+}
+
+function showTlExportPanel(){
+  const included = currentTravelogue.data.entries.filter(e=>e.included);
+  const allPhotos = [];
+  included.forEach(e=> (e.photos||[]).forEach(p=> allPhotos.push(p)));
+
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:95;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const panel=document.createElement('div');
+  panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:460px;box-shadow:0 10px 34px rgba(0,0,0,.3);max-height:86vh;overflow-y:auto;';
+  panel.innerHTML='<div style="font-size:16px;font-weight:700;margin-bottom:14px;">导出游记</div>';
+
+  const plazaRow=document.createElement('label');
+  plazaRow.style.cssText='display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--ink);cursor:pointer;line-height:1.6;margin-bottom:14px;';
+  const plazaCb=document.createElement('input');
+  plazaCb.type='checkbox'; plazaCb.checked = !!currentTravelogue.is_public;
+  plazaCb.style.cssText='margin-top:2px;flex:0 0 auto;';
+  const plazaTxt=document.createElement('span');
+  plazaTxt.innerHTML='发布到<b>路书广场</b>——所有人都能在广场看到这篇游记（只看勾选放进游记的内容）';
+  plazaRow.appendChild(plazaCb); plazaRow.appendChild(plazaTxt);
+  panel.appendChild(plazaRow);
+  plazaCb.addEventListener('change', async ()=>{
+    plazaCb.disabled=true;
+    try{
+      const { error } = await cbDb.from('travelogues')
+        .update({ is_public: plazaCb.checked })
+        .eq('id', currentTravelogue.id).eq('user_id', getCurrentUid());
+      if(error) throw error;
+      currentTravelogue.is_public = plazaCb.checked;
+    }catch(e){
+      plazaCb.checked = !plazaCb.checked;
+      toast('更新失败：'+(e.message||''));
+    }
+    plazaCb.disabled=false;
+  });
+
+  const pdfBtn=document.createElement('button');
+  pdfBtn.className='btn small'; pdfBtn.style.cssText='width:100%;margin-bottom:8px;';
+  pdfBtn.textContent='🖨 导出 PDF（用浏览器打印，选"另存为 PDF"）';
+  pdfBtn.addEventListener('click', ()=>{ overlay.remove(); window.print(); });
+  panel.appendChild(pdfBtn);
+
+  const divider=document.createElement('div'); divider.style.cssText='height:1px;background:var(--line);margin:14px 0;';
+  panel.appendChild(divider);
+
+  const xhsLabel=document.createElement('div');
+  xhsLabel.style.cssText='font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:8px;';
+  xhsLabel.textContent='小红书文案（复制后直接粘贴到发布页）';
+  panel.appendChild(xhsLabel);
+
+  const ta=document.createElement('textarea');
+  ta.value = buildXhsText();
+  ta.style.cssText='width:100%;min-height:200px;border:1px solid #DDE2D8;border-radius:8px;padding:10px;font-size:12.5px;font-family:inherit;background:#FBFBF9;line-height:1.7;';
+  panel.appendChild(ta);
+
+  const copyBtn=document.createElement('button');
+  copyBtn.className='btn ghost small'; copyBtn.style.cssText='width:100%;margin-top:8px;';
+  copyBtn.textContent='复制文案';
+  copyBtn.addEventListener('click', async ()=>{
+    let ok=false;
+    try{ await navigator.clipboard.writeText(ta.value); ok=true; }
+    catch(e){ ta.focus(); ta.select(); try{ ok=document.execCommand('copy'); }catch(e2){} }
+    copyBtn.textContent = ok? '已复制':'复制失败，请手动选中';
+  });
+  panel.appendChild(copyBtn);
+
+  if(allPhotos.length){
+    const picLabel=document.createElement('div');
+    picLabel.style.cssText='font-size:12px;font-weight:600;color:var(--ink-soft);margin:16px 0 8px;';
+    picLabel.textContent='图片（点击单张保存，小红书发图要一张张选）';
+    panel.appendChild(picLabel);
+    const grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:6px;';
+    allPhotos.forEach((src,i)=>{
+      const a=document.createElement('a');
+      a.href=src; a.download='游记图片'+(i+1)+'.jpg';
+      const img=document.createElement('img');
+      img.src=src; img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;';
+      a.appendChild(img);
+      grid.appendChild(a);
+    });
+    panel.appendChild(grid);
+  }
+
+  const closeBtn=document.createElement('button');
+  closeBtn.className='btn ghost small'; closeBtn.style.cssText='width:100%;margin-top:14px;';
+  closeBtn.textContent='关闭';
+  closeBtn.addEventListener('click', ()=> overlay.remove());
+  panel.appendChild(closeBtn);
+
+  overlay.appendChild(panel);
+  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
 /* ---------- 个人信息 ---------- */
 let myProfile = null;
+let profileReturnScreen = 'screen-routelist';
 
 document.getElementById('goProfileBtn').addEventListener('click', ()=>{
+  profileReturnScreen = 'screen-routelist';
+  showScreen('screen-profile');
+  loadProfile();
+});
+document.getElementById('goProfileBtn2').addEventListener('click', ()=>{
+  profileReturnScreen = 'screen-travelogue-list';
   showScreen('screen-profile');
   loadProfile();
 });
 document.getElementById('backFromProfileBtn').addEventListener('click', ()=>{
-  showScreen('screen-routelist');
+  showScreen(profileReturnScreen);
   if(window.rbMobileRefresh) rbMobileRefresh();
 });
 document.getElementById('logoutBtn2').addEventListener('click', async ()=>{
   if(!cbAuth) return;
   currentRouteId = null;
   try{ await cbAuth.signOut(); }catch(e){ toast('退出失败：'+(e.message||'')); }
+});
+document.getElementById('logoutBtn3').addEventListener('click', ()=>{ document.getElementById('logoutBtn2').click(); });
+
+document.getElementById('goTravelogueListBtn').addEventListener('click', ()=>{
+  showScreen('screen-travelogue-list');
+  loadAllTravelogues();
+});
+document.getElementById('goRouteListBtn').addEventListener('click', ()=>{
+  showScreen('screen-routelist');
 });
 
 function renderAvatar(dataUrl, nickname){
@@ -3968,6 +4818,14 @@ async function openRoute(routeId, routeName){
 body.mobile-on #mshell{display:block;position:fixed;inset:0;z-index:9000;background:#F0F2EC;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif;color:#1B2A2E;overflow:hidden}
 body.mobile-on>.app-screen{display:none!important}
 body.mobile-on #screen-profile.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important}
+body.mobile-on #screen-travelogue-list.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important}
+body.mobile-on #screen-travelogue.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important}
+body.mobile-on #tll-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 14px)!important}
+body.mobile-on #tl-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 14px)!important;flex-wrap:wrap}
+body.mobile-on #tlTitleInput{width:100%;max-width:none;order:3;margin-top:6px}
+body.mobile-on #tl-main{flex-direction:column}
+body.mobile-on #tl-editor-col{width:100%;flex:1 1 auto;border-right:none}
+body.mobile-on #tl-preview-col{display:none}
 #mshell .ms-scr{position:absolute;inset:0;display:none;flex-direction:column}
 #mshell .ms-scr.on{display:flex}
 #mshell .ms-head{flex:0 0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px;background:#fff;box-shadow:0 2px 12px rgba(27,42,46,.06)}
@@ -4053,12 +4911,12 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   </div>
 
   <div class="ms-scr" id="ms-plaza">
-    <div class="ms-head"><h1 class="ms-title">路书广场</h1><div class="ms-sub">别人公开的路书，可以直接抄一份改成自己的</div></div>
+    <div class="ms-head"><h1 class="ms-title">广场</h1><div class="ms-sub">别人公开的路书和游记，路书可以直接抄一份改成自己的</div></div>
     <div class="ms-body" id="msPlazaBody"></div>
   </div>
 
   <div class="ms-scr" id="ms-journal">
-    <div class="ms-head"><h1 class="ms-title">路上打卡</h1><div class="ms-sub" id="msJournalSub">有照片的点位会汇成游记</div></div>
+    <div class="ms-head"><h1 class="ms-title">游记</h1><div class="ms-sub" id="msJournalSub">记录路上的故事，写完还能发到广场</div></div>
     <div class="ms-body" id="msJournalBody"></div>
   </div>
 
@@ -4086,7 +4944,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
 (function(){
   const TAGC = {'出发点':'#33454A','住宿':'#1D6FA5','美食':'#D8703A','景点':'#5B7A46','补能':'#B98134','到家':'#6B5B95'};
   const TAGS = ['出发点','住宿','美食','景点','补能','到家'];
-  let mScreen='list', mView='timeline', mTag=null, mRiding=false;
+  let mScreen='list', mView='timeline', mTag=null, mRiding=false, mPlazaTab='routes';
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -4134,8 +4992,9 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     if(s==='me') renderMe();
   }
   $('msTabBar').querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
-    if(document.getElementById('screen-profile').classList.contains('active')){
-      showScreen('screen-routelist'); // 关闭个人信息覆盖层，让底部导航随时可切换
+    const overlayIds = ['screen-profile','screen-travelogue-list','screen-travelogue'];
+    if(overlayIds.some(id=>{ const el=document.getElementById(id); return el && el.classList.contains('active'); })){
+      showScreen('screen-routelist'); // 关闭浮层（个人信息 / 游记编辑），让底部导航随时可切换
     }
     if(b.dataset.s==='me'){ const gb=document.getElementById('goProfileBtn'); if(gb) gb.click(); return; }
     goScreen(b.dataset.s);
@@ -4476,26 +5335,81 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     await shareRoute(route, dummyBtn);
   });
 
-  async function renderPlaza(){
-    const body = $('msPlazaBody');
-    body.innerHTML = '<div class="ms-card" style="color:#8A968F">加载中…</div>';
+  /* ---------- 广场：路书 + 游记两个子 tab ----------
+     list_shared_routes() / list_shared_travelogues() 是期望部署的云函数（全量
+     查询 + 服务端过滤，绕开 JSON 子字段不能筛选的限制）。如果云函数还没部署，
+     直接兜底按 is_public 列查询——这要求后台把 roadbook / travelogues 两张表
+     "is_public=true 的行任何人可读"的 RLS 规则打开，两条路都留着，哪条能跑
+     通就用哪条，不会因为云函数没上线就整个挂掉。 */
+  async function fetchPublicRoutes(){
     try{
       const { data, error } = await cbDb.rpc('list_shared_routes');
       if(error) throw error;
-      const rows = data || [];
+      return data || [];
+    }catch(e1){
+      const { data, error } = await cbDb.from('roadbook')
+        .select('id,name,updated_at,share_token,is_public,stops:data->stops')
+        .eq('is_public', true)
+        .order('updated_at', { ascending:false })
+        .limit(60);
+      if(error) throw e1;
+      return data || [];
+    }
+  }
+  async function fetchPublicTravelogues(){
+    try{
+      const { data, error } = await cbDb.rpc('list_shared_travelogues');
+      if(error) throw error;
+      return data || [];
+    }catch(e1){
+      const { data, error } = await cbDb.from('travelogues')
+        .select('id,title,route_name,updated_at,is_public')
+        .eq('is_public', true)
+        .order('updated_at', { ascending:false })
+        .limit(60);
+      if(error) throw e1;
+      return data || [];
+    }
+  }
+
+  async function renderPlaza(){
+    const body = $('msPlazaBody');
+    body.innerHTML = '<div class="plaza-tabs" id="plazaTabs">'
+      + '<button data-pt="routes" class="'+(mPlazaTab==='routes'?'on':'')+'">路书</button>'
+      + '<button data-pt="journals" class="'+(mPlazaTab==='journals'?'on':'')+'">游记</button>'
+      + '</div><div id="plazaListArea" class="ms-card" style="color:#8A968F">加载中…</div>';
+    // note: plazaListArea starts out as its own card (loading state); once data
+    // arrives it's refilled with either plain text (kept inside this same card)
+    // or a list of already-card-wrapped rows, so we drop the wrapper's own
+    // card styling first to avoid nesting a card inside a card.
+    $('plazaListArea').classList.remove('ms-card');
+    $('plazaListArea').style.cssText='';
+    body.querySelectorAll('[data-pt]').forEach(b=> b.addEventListener('click', ()=>{
+      if(b.dataset.pt===mPlazaTab) return;
+      mPlazaTab = b.dataset.pt; renderPlaza();
+    }));
+    if(mPlazaTab==='routes') renderPlazaRoutes();
+    else renderPlazaJournals();
+  }
+
+  async function renderPlazaRoutes(){
+    const area = $('plazaListArea');
+    try{
+      const rows = await fetchPublicRoutes();
       const myIds = (window.loadedRoutes||[]).map(r=>r.id);
-      body.innerHTML = rows.length ? rows.map(r=>'<div class="ms-card"><div class="ms-row"><div style="flex:1;min-width:0">'
-        + '<div style="font-size:15.5px;font-weight:600">'+esc(r.name||'未命名路书')+'</div>'
+      area.innerHTML = rows.length ? rows.map(r=>'<div class="ms-card"><div class="ms-row"><div style="flex:1;min-width:0">'
+        + '<div style="font-size:15.5px;font-weight:600">'+esc(r.name||'未命名路书')+(r.is_public?'<span class="plaza-public-badge">公开</span>':'')+'</div>'
         + '<div class="ms-sub">'+(myIds.indexOf(r.id)>=0? '你分享的' : '别人分享的')+(r.updated_at? ' · '+String(r.updated_at).slice(0,10):'')+'</div></div>'
-        + '<button class="ms-pill" data-plaza-open="'+esc(r.id)+'" data-token="'+esc(r.share_token)+'">打开</button></div></div>').join('')
-        : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场还没有分享过的路书。在路书里点「分享」生成链接，它就会出现在这里，所有人都能看到。</div>';
-      body.querySelectorAll('[data-plaza-open]').forEach(el=>el.addEventListener('click', async ()=>{
+        + '<button class="ms-pill" data-plaza-open="'+esc(r.id)+'" data-token="'+esc(r.share_token||'')+'">打开</button></div></div>').join('')
+        : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场还没有公开的路书。在「我的路书」点 ↗ 分享，勾选「同时发布到路书广场」，它就会出现在这里。</div>';
+      area.querySelectorAll('[data-plaza-open]').forEach(el=>el.addEventListener('click', async ()=>{
         const id = el.dataset.plazaOpen, token = el.dataset.token;
-        if(myIds.indexOf(id)>=0){
+        const myIds2 = (window.loadedRoutes||[]).map(r=>r.id);
+        if(myIds2.indexOf(id)>=0){
           await openRoute(id, '');
           mTag=null; mView='timeline'; mRiding=false;
           goScreen('plan'); renderPlan();
-        } else if(typeof showAcceptShareDialog==='function'){
+        } else if(token && typeof showAcceptShareDialog==='function'){
           try{
             const { data: rd, error: e2 } = await cbDb.rpc('get_shared_route', { token });
             if(e2) throw e2;
@@ -4503,25 +5417,151 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
             if(!row){ toast('这个分享已失效'); return; }
             showAcceptShareDialog(row);
           }catch(e3){ toast('打开失败：'+(e3.message||'')); }
+        } else {
+          toast('这条路书暂时打不开，可能后台还没有开放公开读取权限');
         }
       }));
     }catch(e){
-      body.innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场暂时读不到数据：'+esc(e.message||'未知错误')+'</div>';
+      area.innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场暂时读不到数据：'+esc(e.message||'未知错误')+'</div>';
     }
   }
 
+  async function renderPlazaJournals(){
+    const area = $('plazaListArea');
+    try{
+      const rows = await fetchPublicTravelogues();
+      area.innerHTML = rows.length ? rows.map(tl=>'<div class="ms-card"><div class="ms-row"><div style="flex:1;min-width:0">'
+        + '<div style="font-size:15.5px;font-weight:600">'+esc(tl.title||'未命名游记')+'<span class="plaza-public-badge">公开</span></div>'
+        + '<div class="ms-sub">来自《'+esc(tl.route_name||'')+'》'+(tl.updated_at? ' · '+String(tl.updated_at).slice(0,10):'')+'</div></div>'
+        + '<button class="ms-pill" data-plaza-journal="'+esc(tl.id)+'">阅读</button></div></div>').join('')
+        : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场还没有公开的游记。写完一篇游记后，点「导出」，勾选「发布到路书广场」，别人就能看到。</div>';
+      area.querySelectorAll('[data-plaza-journal]').forEach(el=>el.addEventListener('click', ()=>{
+        openPublicTravelogueView(el.dataset.plazaJournal);
+      }));
+    }catch(e){
+      area.innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场暂时读不到游记：'+esc(e.message||'未知错误')+'</div>';
+    }
+  }
+
+  async function openPublicTravelogueView(id){
+    let row;
+    try{
+      const { data, error } = await cbDb.from('travelogues').select('*').eq('id', id).single();
+      if(error) throw error;
+      row = data;
+    }catch(e){ toast('打开失败：'+(e.message||'')); return; }
+    if(!row || !row.data){ toast('这篇游记已被撤下'); return; }
+    const entries = (row.data.entries||[]).filter(en=>en.included);
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+    const pane=document.createElement('div');
+    pane.style.cssText='background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:22px 20px calc(env(safe-area-inset-bottom,0px) + 24px);';
+    let html = '<div style="font-size:19px;font-weight:700;margin-bottom:2px;">'+esc(row.title||'未命名游记')+'</div>'
+      + '<div style="font-size:12px;color:#5B6B67;margin-bottom:18px;">来自路书《'+esc(row.route_name||'')+'》</div>';
+    if(!entries.length) html += '<div style="color:#5B6B67;">这篇游记还没有内容</div>';
+    entries.forEach(en=>{
+      if(en.type==='segment'){
+        html += '<div style="font-size:11.5px;color:#5B6B67;margin:10px 0;">↓ '+esc(en.name)+(en.subtitle?'　'+esc(en.subtitle):'')+'</div>';
+      } else if(en.type==='point'){
+        html += '<div style="font-size:15px;font-weight:700;margin:16px 0 4px;">'+esc(en.name)+'</div>';
+      }
+      if(en.photos && en.photos.length){
+        html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0;">'
+          + en.photos.map(src=>'<img src="'+src+'" style="width:100%;height:130px;object-fit:cover;border-radius:8px;">').join('')
+          + '</div>';
+      }
+      if(en.text) html += '<div style="font-size:13.5px;line-height:1.8;color:#333;white-space:pre-wrap;margin-bottom:4px;">'+esc(en.text)+'</div>';
+    });
+    html += '<div style="display:flex;gap:8px;margin-top:20px;">'
+      + '<button class="ms-btn" id="plazaTlCopyBtn" style="flex:1;">存一份到我的游记</button>'
+      + '<button class="ms-btn ghost" id="plazaTlCloseBtn" style="flex:1;">关闭</button></div>';
+    pane.innerHTML = html;
+    overlay.appendChild(pane);
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    pane.querySelector('#plazaTlCloseBtn').addEventListener('click', ()=> overlay.remove());
+    pane.querySelector('#plazaTlCopyBtn').addEventListener('click', async (e)=>{
+      const btn = e.target; btn.disabled=true; btn.textContent='保存中…';
+      try{
+        const copy = {
+          user_id: getCurrentUid(),
+          route_id: null,
+          route_name: row.route_name || '',
+          title: (row.title||'未命名游记') + '（存档）',
+          data: row.data,
+          is_public: false
+        };
+        const { error } = await cbDb.from('travelogues').insert(copy);
+        if(error) throw error;
+        toast('已存到你的游记');
+        overlay.remove();
+      }catch(err){
+        btn.disabled=false; btn.textContent='存一份到我的游记';
+        toast('保存失败：'+(err.message||''));
+      }
+    });
+  }
+
+  /* ---------- 游记 tab：首页仪表盘，具体编辑复用桌面版的独立游记模块 ---------- */
   function renderJournal(){
-    const st = (state && state.stops) || [];
-    const withPhoto = st.map((s,i)=>({s,i})).filter(x=>x.s.photo);
-    $('msJournalSub').textContent = withPhoto.length ? (withPhoto.length+' 个点位有照片') : '在点位里加照片，这里会汇成游记';
-    $('msJournalBody').innerHTML = withPhoto.length ? withPhoto.map(function(x){
-      const s = x.s;
-      return '<div class="ms-card" style="padding:0;overflow:hidden">'
-        + '<img src="'+esc(s.photo)+'" style="width:100%;height:190px;object-fit:cover;display:block">'
-        + '<div style="padding:13px 15px 15px"><div style="font-size:14.5px;font-weight:600">'+esc(s.name)+'</div>'
-        + '<div class="ms-sub">第 '+s.day+' 天'+(s.note? ' · '+esc(s.note):'')+'</div></div></div>';
-    }).join('')
-      : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">当前打开的路书里还没有照片。在点位详情里加照片（电脑版可上传），这里就会按天串成游记。</div>';
+    renderJournalHome($('msJournalBody'));
+  }
+
+  async function countMyTravelogues(){
+    try{
+      const uid = getCurrentUid();
+      const { data, error } = await cbDb.from('travelogues').select('id').eq('user_id', uid);
+      if(error) throw error;
+      return (data||[]).length;
+    }catch(e){ return 0; }
+  }
+
+  async function renderJournalHome(body){
+    let html = '';
+    if(currentRouteId){
+      const planName = ($('msPlanName') && $('msPlanName').textContent) || '当前路书';
+      html += '<div class="ms-card"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">《'+esc(planName)+'》的游记</div>'
+        + '<div id="jhCurList" style="color:#8A968F;font-size:12.5px;">加载中…</div>'
+        + '<button class="ms-btn" id="jhNewForCurrent" style="width:100%;margin-top:10px;">＋ 为这条路书新建游记</button></div>';
+    }
+    html += '<div class="ms-card" id="jhAllEntry" style="cursor:pointer"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">我的游记（全部）</div><div class="ms-sub" id="jhAllSub">汇总所有路书下的游记</div></div><div style="color:#B4BDB4">›</div></div></div>';
+    html += '<button class="ms-btn ghost" id="jhNewAny" style="width:100%;margin-bottom:11px;">＋ 新建游记</button>';
+    html += '<div class="ms-card" id="jhPlazaEntry" style="cursor:pointer"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">广场上的游记</div><div class="ms-sub">看看别人写的路上故事，或者存一份灵感回来</div></div><div style="color:#B4BDB4">›</div></div></div>';
+    body.innerHTML = html;
+
+    $('jhAllEntry').addEventListener('click', ()=> $('goTravelogueListBtn').click());
+    $('jhNewAny').addEventListener('click', ()=> { if(typeof showRoutePickerForNewTravelogue==='function') showRoutePickerForNewTravelogue(); });
+    $('jhPlazaEntry').addEventListener('click', ()=>{ mPlazaTab='journals'; goScreen('plaza'); });
+    const curBtn = $('jhNewForCurrent');
+    if(curBtn) curBtn.addEventListener('click', ()=>{
+      const planName = ($('msPlanName') && $('msPlanName').textContent) || '未命名路书';
+      if(typeof createTravelogueFromRoute==='function') createTravelogueFromRoute({ id: currentRouteId, name: planName });
+    });
+
+    countMyTravelogues().then(n=>{
+      const el = $('jhAllSub');
+      if(el) el.textContent = n? (n+' 篇 · 汇总所有路书下的游记') : '汇总所有路书下的游记';
+    });
+
+    if(currentRouteId){
+      try{
+        const uid = getCurrentUid();
+        const { data, error } = await cbDb.from('travelogues')
+          .select('id,title,updated_at')
+          .eq('route_id', currentRouteId).eq('user_id', uid)
+          .order('updated_at', {ascending:false});
+        if(error) throw error;
+        const wrap = $('jhCurList');
+        if(!wrap) return;
+        wrap.innerHTML = (data && data.length) ? data.map(tl=>'<div data-tl="'+esc(tl.id)+'" style="padding:8px 0;border-top:1px solid #EEF0EA;cursor:pointer;font-size:13.5px;font-weight:600;color:#1B2A2E;">'+esc(tl.title||'未命名游记')+'</div>').join('')
+          : '这条路书还没有游记';
+        wrap.querySelectorAll('[data-tl]').forEach(el=> el.addEventListener('click', ()=>{
+          if(typeof openTravelogueEditor==='function') openTravelogueEditor(el.dataset.tl);
+        }));
+      }catch(e){
+        const wrap = $('jhCurList'); if(wrap) wrap.textContent='加载失败';
+      }
+    }
   }
 
   function renderMe(){
