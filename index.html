@@ -5403,6 +5403,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     const days = [];
     st.forEach(s=>{ if(days.indexOf(s.day)<0) days.push(s.day); });
     let html='';
+    let firstStopOverall = true;
     days.forEach(day=>{
       const rows = vis.filter(x=>x.s.day===day);
       if(!rows.length && mTag) return;
@@ -5413,6 +5414,11 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         + '<div style="font-size:14px;font-weight:700">第 '+day+' 天</div>'
         + '<div style="flex:1;height:1px;background:#DDE2D8"></div>'
         + '<div class="ms-sub">'+Math.round(dk)+' km · '+fmtMin(dm)+'</div></div>';
+      if(firstStopOverall && !mTag){
+        html += '<div data-insert="-1" style="margin-left:26px;padding:5px 10px;font-size:11.5px;color:#8A968F;display:flex;align-items:center;gap:6px">'
+          + '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px dashed #B4BDB4;font-size:12px;line-height:1">＋</span>在最前面插入一个点</div>';
+      }
+      firstStopOverall = false;
       rows.forEach(function(x){
         const s = x.s, i = x.i, c = stopColor(s), g = segAt(i);
         html += '<div class="ms-card" data-stop="'+i+'" style="padding:12px 13px;border:1px solid '+((state.currentIndex===i)?'#D8703A':'transparent')+'">'
@@ -5421,14 +5427,17 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
           + (s.tag? ' <span style="font-size:10.5px;font-weight:600;color:'+c+';background:'+c+'18;border-radius:5px;padding:2px 6px">'+esc(s.tag)+'</span>':'')
           + '</div>'+(s.note? '<div class="ms-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.note)+'</div>':'')
           + '</div><div style="color:#B4BDB4">›</div></div></div>';
-        if(st[i+1]){
-          html += '<div class="ms-row" data-seg="'+i+'" style="margin:2px 0 2px 26px;padding:6px 10px;gap:8px">'
-            + '<div style="width:2px;height:22px;background:#D3DBCB;border-radius:2px"></div>'
+        if(st[i+1] && !mTag){
+          html += '<div class="ms-row" style="margin:2px 0 2px 26px;padding:6px 10px 6px 0;gap:8px">'
+            + '<div style="width:2px;height:22px;background:#D3DBCB;border-radius:2px;flex:0 0 auto"></div>'
+            + '<div data-seg="'+i+'" style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer">'
             + '<div class="ms-sub">'+(g&&g.km? Math.round(g.km)+' km · '+fmtMin(g.min) : '这段还没有路线数据')+'</div>'
-            + '<div style="font-size:11.5px;color:#D8703A;font-weight:600">沿途搜一搜 →</div></div>';
+            + '<div style="font-size:11.5px;color:#D8703A;font-weight:600;white-space:nowrap">沿途搜一搜 →</div></div>'
+            + '<button data-insert="'+i+'" title="在这两点之间插入一个点" style="flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px dashed #B4BDB4;background:#fff;color:#8A968F;font-size:14px;line-height:1;cursor:pointer">＋</button>'
+            + '</div>';
         }
       });
-      html += '<div data-add="'+day+'" style="margin-left:26px;padding:8px 10px;font-size:12.5px;color:#8A968F">＋ 在这一天加一个点</div></div>';
+      html += '<div data-insert="'+(function(){ let idx=-1; st.forEach((s,i)=>{ if(s.day===day) idx=i; }); return idx; })()+'" style="margin-left:26px;padding:8px 10px;font-size:12.5px;color:#8A968F">＋ 在这一天最后加一个点</div></div>';
     });
     $('msPlanBody').innerHTML = html;
     bindPlanBody();
@@ -5446,7 +5455,9 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         + '<div class="ms-row" style="margin-top:12px"><div class="ms-sub" style="flex:1">'+(g&&g.km? '下一段 '+Math.round(g.km)+' km':'行程终点')+'</div>'
         + (st[i+1]? '<button class="ms-pill" data-seg="'+i+'">沿途搜</button>':'')
         + '<button class="ms-pill" data-nav="'+i+'">导航</button>'
-        + '<button class="ms-pill" data-stop="'+i+'">详情</button></div></div></div>';
+        + '<button class="ms-pill" data-stop="'+i+'">详情</button></div>'
+        + (!mTag? '<div style="text-align:center;margin-top:8px"><button data-insert="'+i+'" style="border:1px dashed #B4BDB4;background:none;color:#8A968F;border-radius:999px;padding:4px 12px;font-size:11.5px;cursor:pointer">＋ 在后面插入一个点</button></div>' : '')
+        + '</div></div>';
     }).join('') || '<div class="ms-card" style="text-align:center;color:#8A968F">没有符合筛选的点位</div>';
     bindPlanBody();
   }
@@ -5491,7 +5502,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     body.querySelectorAll('[data-stop]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); openSheet(+el.dataset.stop); }));
     body.querySelectorAll('[data-seg]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); openSegmentPanel(+el.dataset.seg); }));
     body.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); navFrom(+el.dataset.nav); }));
-    body.querySelectorAll('[data-add]').forEach(el=>el.addEventListener('click', ()=>addStopOnDay(+el.dataset.add)));
+    body.querySelectorAll('[data-insert]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); insertStopAfter(+el.dataset.insert); }));
   }
 
   function navFrom(i){
@@ -5504,16 +5515,45 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       +'&to='+b.lng+','+b.lat+','+encodeURIComponent(b.name)+'&mode=car&policy=1&src=roadbook&callnative=1','_blank');
   }
 
-  function addStopOnDay(day){
-    const name = prompt('这一天要加什么点？（地名，之后可在电脑版解析坐标）');
+  /* 在任意两个点之间（或最前面 i=-1）插入一个新点，加完立刻自动定位坐标、
+     重新规划这一小段路线——跟桌面版"添加地点"之后自动补坐标是同一套逻辑
+     （geocodeAndRoute 只处理还没坐标的点/还没算出来的路段，很快），不用再
+     切回电脑版点"重新规划"。 */
+  function insertStopAfter(i){
+    const after = state.stops[i];
+    const before = state.stops[i+1];
+    const name = prompt(i<0 ? '在最前面加一个什么点？（地名，加完会自动定位）' : '在这里加一个什么点？（地名，加完会自动定位）');
     if(!name) return;
-    let idx = -1;
-    state.stops.forEach((s,i)=>{ if(s.day===day) idx=i; });
-    const ns = { id:'s'+Date.now(), day:day, name:name.trim(), tag:'', note:'', photo:'', color:'', lng:null, lat:null, geocodeFailed:false };
-    state.stops.splice(idx+1, 0, ns);
+    const trimmed = name.trim();
+    if(!trimmed) return;
+    const day = (after && after.day) || (before && before.day) || 1;
+    const ns = { id:'s'+Date.now(), day:day, name:trimmed, tag:'', note:'', photo:'', color:'', lng:null, lat:null, geocodeFailed:false };
+    state.stops.splice(i+1, 0, ns);
     if(typeof rebuildSegmentsSkeleton==='function') rebuildSegmentsSkeleton();
     if(typeof markDirty==='function') markDirty();
     saveState();
+    renderPlan();
+    autoLocateNewStop();
+  }
+
+  async function autoLocateNewStop(){
+    if(typeof geocodeAndRoute!=='function') return;
+    if(typeof connected==='undefined' || !connected){
+      if(typeof state!=='undefined' && state.apiKey && typeof loadAMapScript==='function' && !document.getElementById('amap-script')){
+        loadAMapScript();
+      }
+      let waited = 0;
+      while((typeof connected==='undefined' || !connected) && waited < 6000){
+        await new Promise(r=>setTimeout(r, 300));
+        waited += 300;
+      }
+    }
+    if(typeof connected==='undefined' || !connected){
+      if(typeof toast==='function') toast('高德地图还没连上，坐标暂时是空的——网络恢复后重新打开这条路书会自动补上，也可以去电脑版点"重新规划"');
+      return;
+    }
+    if(typeof toast==='function') toast('正在自动定位新加的点…');
+    try{ await geocodeAndRoute(); }catch(e){}
     renderPlan();
   }
 
