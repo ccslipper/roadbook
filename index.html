@@ -3996,7 +3996,8 @@ body.mobile-on #screen-profile.active{display:flex!important;position:fixed!impo
 #mshell .ms-in{width:100%;box-sizing:border-box;border:1px solid #DDE2D8;background:#FBFBF9;border-radius:12px;padding:11px 12px;font-size:14px;outline:none;font-family:inherit}
 #mshell .ms-relay{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 78px);display:none;align-items:center;gap:10px;background:#33454A;border-radius:16px;padding:11px 12px 11px 14px;box-shadow:0 10px 26px rgba(27,42,46,.24);z-index:30}
 #mshell .ms-relay.on{display:flex}
-#msSwitch{display:none}
+body.mobile-on #backFromProfileBtn{padding:11px 16px!important;font-size:22px!important;min-width:44px;min-height:44px}
+body.mobile-on #profile-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 14px)!important}
 body.ms-recommend-open #screen-editor{display:block!important}
 body.ms-recommend-open #screen-editor>*:not(#mapwrap){display:none!important}
 body.ms-recommend-open #mapwrap>*:not(#recommendPanel):not(#drawer){display:none!important}
@@ -4131,7 +4132,10 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     if(s==='journal') renderJournal();
     if(s==='me') renderMe();
   }
-  $('msTabBar').querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>goScreen(b.dataset.s)));
+  $('msTabBar').querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+    if(b.dataset.s==='me'){ const gb=document.getElementById('goProfileBtn'); if(gb) gb.click(); return; }
+    goScreen(b.dataset.s);
+  }));
 
   function persistOrder(ids){ try{ localStorage.setItem('rb_order_'+(getCurrentUid()||''), JSON.stringify(ids)); }catch(e){} }
   function applyStoredOrder(rs){
