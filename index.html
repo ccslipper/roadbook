@@ -4089,7 +4089,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const stopColor = s => TAGC[(s.tag||'').trim()] || (typeof DAY_COLORS_HEX!=='undefined' ? (DAY_COLORS_HEX[((s.day||1)-1)%8]||'#33454A') : '#33454A');
   const fmtMin = m => m==null ? '—' : (m>=60 ? Math.floor(m/60)+' 小时 '+(m%60)+' 分' : m+' 分');
-  const segAt = i => (window.state && state.segments && state.segments[i]) || null;
+  const segAt = i => (state && state.segments && state.segments[i]) || null;
 
   const _origRecClose = document.getElementById('recommendPanel-close');
   if(_origRecClose) _origRecClose.addEventListener('click', ()=>{ document.body.classList.remove('ms-recommend-open'); });
@@ -4164,12 +4164,12 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }));
 
   function visibleStops(){
-    const st = (window.state && state.stops) || [];
+    const st = (state && state.stops) || [];
     return st.map((s,i)=>({s,i})).filter(x=>!mTag || (x.s.tag||'').trim()===mTag);
   }
 
   function renderTagChips(){
-    const st = (window.state && state.stops) || [];
+    const st = (state && state.stops) || [];
     const counts = {};
     st.forEach(s=>{ const t=(s.tag||'').trim(); if(t) counts[t]=(counts[t]||0)+1; });
     let html = '<button class="ms-pill'+(mTag?'':' on')+'" data-tag="">全部 '+st.length+'</button>';
@@ -4186,11 +4186,11 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
 
   function renderPlan(){
-    const st = (window.state && state.stops) || [];
+    const st = (state && state.stops) || [];
     const nameEl = document.getElementById('routeNameLabel');
     $('msPlanName').textContent = (nameEl && nameEl.textContent) || '路书';
     let km=0;
-    ((window.state && state.segments) || []).forEach(g=>{ if(g && g.km) km+=g.km; });
+    ((state && state.segments) || []).forEach(g=>{ if(g && g.km) km+=g.km; });
     const days = st.length ? Math.max.apply(null, st.map(s=>s.day||1)) : 0;
     $('msPlanMeta').textContent = days+' 天 · '+Math.round(km)+' km · '+st.length+' 个点位';
     renderTagChips();
@@ -4208,7 +4208,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
 
   function renderTimeline(){
-    const st = (window.state && state.stops) || [];
+    const st = (state && state.stops) || [];
     if(!st.length){
       $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">这条路书还没有点位。点下面每一天的「＋ 加一个点」，或切到电脑版用地图批量加。</div>';
       return;
@@ -4249,7 +4249,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
 
   function renderCards(){
-    const st = (window.state && state.stops) || [];
+    const st = (state && state.stops) || [];
     $('msPlanBody').innerHTML = visibleStops().map(function(x){
       const s = x.s, i = x.i, c = stopColor(s), g = segAt(i);
       return '<div class="ms-card" style="padding:0;overflow:hidden">'
@@ -4266,7 +4266,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
 
   function renderMap(){
-    const st = (window.state && state.stops) || [];
+    const st = (state && state.stops) || [];
     const pts = st.filter(s=>s.lng!=null && s.lat!=null);
     if(pts.length < 2){
       $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">点位还没有坐标，地图画不出来。切到电脑版点「重新规划」把坐标解析出来，再回手机版看。</div>';
@@ -4417,7 +4417,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
 
   function renderJournal(){
-    const st = (window.state && state.stops) || [];
+    const st = (state && state.stops) || [];
     const withPhoto = st.map((s,i)=>({s,i})).filter(x=>x.s.photo);
     $('msJournalSub').textContent = withPhoto.length ? (withPhoto.length+' 个点位有照片') : '在点位里加照片，这里会汇成游记';
     $('msJournalBody').innerHTML = withPhoto.length ? withPhoto.map(function(x){
@@ -4436,7 +4436,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
   function renderMe2(){
     const uid = (typeof getCurrentUid==='function') ? getCurrentUid() : null;
-    const u = (window.cbAuth && cbAuth.currentUser) || null;
+    const u = (cbAuth && cbAuth.currentUser) || null;
     $('msMeSub').textContent = uid ? ('已登录 · '+((u&&(u.username||u.name||u.phone_number))||uid.slice(0,8))) : '未登录';
     $('msMeBody').innerHTML = '<div class="ms-card" data-me="profile"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">个人信息</div><div class="ms-sub">昵称、头像</div></div><div style="color:#B4BDB4">›</div></div></div>'
       + '<button class="ms-btn ghost" data-me="logout" style="width:100%;margin-top:6px;color:#B94A3C;border-color:#E7D4CE">退出登录</button>';
