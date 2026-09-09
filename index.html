@@ -4405,18 +4405,36 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     const body = $('msPlazaBody');
     body.innerHTML = '<div class="ms-card" style="color:#8A968F">加载中…</div>';
     try{
-      const { data, error } = await cbDb.from('roadbook').select('id,name,updated_at,share_token').limit(30);
+      const { data, error } = await cbDb.rpc('list_shared_routes');
       if(error) throw error;
-      const rows = (data||[]).filter(r=>r.share_token);
+      const rows = data || [];
+      const myIds = (window.loadedRoutes||[]).map(r=>r.id);
       body.innerHTML = rows.length ? rows.map(r=>'<div class="ms-card"><div class="ms-row"><div style="flex:1;min-width:0">'
         + '<div style="font-size:15.5px;font-weight:600">'+esc(r.name||'未命名路书')+'</div>'
-        + '<div class="ms-sub">已公开分享'+(r.updated_at? ' · '+String(r.updated_at).slice(0,10):'')+'</div></div>'
-        + '<a class="ms-pill" href="?share='+encodeURIComponent(r.share_token)+'" style="text-decoration:none">看看</a></div></div>').join('')
-        : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场还没有公开的路书。在路书里点「分享」生成链接，它就会出现在这里。<br><br>要让别人也能在广场看到你的路书，云开发里这张表需要允许「已分享的路书可被所有人读取」。</div>';
+        + '<div class="ms-sub">'+(myIds.indexOf(r.id)>=0? '你分享的' : '别人分享的')+(r.updated_at? ' · '+String(r.updated_at).slice(0,10):'')+'</div></div>'
+        + '<button class="ms-pill" data-plaza-open="'+esc(r.id)+'" data-token="'+esc(r.share_token)+'">打开</button></div></div>').join('')
+        : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场还没有分享过的路书。在路书里点「分享」生成链接，它就会出现在这里，所有人都能看到。</div>';
+      body.querySelectorAll('[data-plaza-open]').forEach(el=>el.addEventListener('click', async ()=>{
+        const id = el.dataset.plazaOpen, token = el.dataset.token;
+        if(myIds.indexOf(id)>=0){
+          await openRoute(id, '');
+          mTag=null; mView='timeline'; mRiding=false;
+          goScreen('plan'); renderPlan();
+        } else if(typeof showAcceptShareDialog==='function'){
+          try{
+            const { data: rd, error: e2 } = await cbDb.rpc('get_shared_route', { token });
+            if(e2) throw e2;
+            const row = Array.isArray(rd)? rd[0] : rd;
+            if(!row){ toast('这个分享已失效'); return; }
+            showAcceptShareDialog(row);
+          }catch(e3){ toast('打开失败：'+(e3.message||'')); }
+        }
+      }));
     }catch(e){
-      body.innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场暂时读不到数据：'+esc(e.message||'权限限制')
-        + '<br><br>目前数据库规则只允许你读自己的路书，这是在保护隐私。要开广场，需要在云开发把「share_token 不为空的记录」设为公开可读。</div>';
+      body.innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场暂时读不到数据：'+esc(e.message||'未知错误')+'</div>';
     }
+  }
+
   }
 
   function renderJournal(){
