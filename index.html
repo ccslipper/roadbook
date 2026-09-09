@@ -3536,48 +3536,66 @@ function buildRouteCard(route, colorIdx){
 
 // resolves the logged-in user's uuid, which the RLS policy compares against.
 // the SDK exposes it under different property names across login methods (phone
-// vs username/password can populate currentUser differently), so we now trust the
-// JWT's `sub` claim FIRST — it's the one value the auth server issues consistently
-// no matter which login method was used — and only fall back to currentUser's own
-// fields if decoding the token fails for some reason.
-// on some devices (seen on mobile) `currentUser`/`getLoginState()` aren't hydrated
-// yet the instant `hasLoginState()` returns true, so we cache the uid the moment
-// we DO manage to resolve it (see hydrateLoginState below) and prefer that cache.
+// vs username/password can populate currentUser differently). On some mobile
+// browsers `currentUser`/`getLoginState()` never resolve to a hydrated object at
+// all (seen on mobile Safari), so the most reliable path is to read the JWT the
+// SDK itself persisted to localStorage and decode its `sub` claim directly —
+// that doesn't depend on the SDK's own (sometimes-stuck) hydration.
+function decodeJwtSub(token){
+  try{
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    return (payload && payload.sub) || null;
+  }catch(e){ return null; }
+}
+function scanLocalStorageForSub(){
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(!/tcb|cloudbase|access_?token|token/i.test(k)) continue;
+      const v = localStorage.getItem(k);
+      if(!v) continue;
+      let candidate = v;
+      // the SDK sometimes stores a JSON blob {access_token:'...'} instead of the raw JWT
+      if(v[0]==='{'){
+        try{ const obj = JSON.parse(v); candidate = obj.access_token || obj.accessToken || ''; }catch(e){ candidate=''; }
+      }
+      if(candidate && candidate.split('.').length===3){
+        const sub = decodeJwtSub(candidate);
+        if(sub) return sub;
+      }
+    }
+  }catch(e){ /* localStorage unavailable */ }
+  return null;
+}
 let __cachedUid = null;
 async function hydrateLoginState(){
   try{
     const st = await cbAuth.getLoginState();
-    const token = st && (st.accessToken || st.access_token);
-    if(token){
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-      if(payload && payload.sub) __cachedUid = payload.sub;
-    }
+    const u2 = cbAuth && cbAuth.currentUser;
+    if(u2){ __cachedUid = u2.uid || u2.userId || u2.user_id || u2.id || u2.sub || __cachedUid; }
     if(!__cachedUid){
-      const u = cbAuth && cbAuth.currentUser;
-      if(u){ __cachedUid = u.sub || u.uid || u.userId || u.user_id || u.id || __cachedUid; }
+      const token = st && (st.accessToken || st.access_token);
+      if(token){ const sub = decodeJwtSub(token); if(sub) __cachedUid = sub; }
     }
   }catch(e){ /* ignore, getCurrentUid() below still has its own fallbacks */ }
+  if(!__cachedUid) __cachedUid = scanLocalStorageForSub();
   return __cachedUid;
 }
 function getCurrentUid(){
   if(__cachedUid) return __cachedUid;
-  try{
-    const st = cbAuth.getLoginState && cbAuth.getLoginState();
-    // st may be a Promise on some SDK builds — only use it if it resolved synchronously to an object
-    if(st && typeof st.then !== 'function'){
-      const token = st.accessToken || st.access_token;
-      if(token){
-        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-        if(payload && payload.sub) return payload.sub;
-      }
-    }
-  }catch(e){ /* fall through to currentUser fields below */ }
   const u = cbAuth && cbAuth.currentUser;
   if(u){
-    const direct = u.sub || u.uid || u.userId || u.user_id || u.id;
+    const direct = u.uid || u.userId || u.user_id || u.id || u.sub;
     if(direct) return direct;
   }
-  return null;
+  try{
+    const st = cbAuth.getLoginState && cbAuth.getLoginState();
+    if(st && typeof st.then !== 'function'){
+      const token = st.accessToken || st.access_token;
+      if(token){ const sub = decodeJwtSub(token); if(sub) return sub; }
+    }
+  }catch(e){ /* fall through */ }
+  return scanLocalStorageForSub();
 }
 
 document.getElementById('newRouteBtn').addEventListener('click', async ()=>{
@@ -4399,8 +4417,9 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     renderMe2();
   }
   function renderMe2(){
+    const uid = (typeof getCurrentUid==='function') ? getCurrentUid() : null;
     const u = (window.cbAuth && cbAuth.currentUser) || null;
-    $('msMeSub').textContent = u ? ('已登录 · '+(u.username||u.name||u.phone_number||'')) : '未登录';
+    $('msMeSub').textContent = uid ? ('已登录 · '+((u&&(u.username||u.name||u.phone_number))||uid.slice(0,8))) : '未登录';
     $('msMeBody').innerHTML = '<div class="ms-card" data-me="profile"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">个人信息</div><div class="ms-sub">昵称、头像</div></div><div style="color:#B4BDB4">›</div></div></div>'
       + '<button class="ms-btn ghost" data-me="logout" style="width:100%;margin-top:6px;color:#B94A3C;border-color:#E7D4CE">退出登录</button>';
     $('msMeBody').querySelectorAll('[data-me]').forEach(el=>el.addEventListener('click', ()=>{
