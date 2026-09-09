@@ -3340,7 +3340,13 @@ async function loadRouteList(){
   try{
     // RLS is the real boundary, but filter by owner explicitly too so a
     // misconfigured policy can never silently expose someone else's routes
-    const uid = getCurrentUid();
+    // mobile browsers can reach this point before cbAuth's session is fully
+    // hydrated (uid still null), which would silently query `user_id=eq.undefined`
+    // and return an empty-but-successful list instead of an error — so give
+    // hydration one more explicit chance before querying.
+    let uid = getCurrentUid();
+    if(!uid){ uid = await hydrateLoginState(); }
+    if(!uid){ await new Promise(r=>setTimeout(r,400)); uid = getCurrentUid(); }
     // pull the stops sub-field only: full `data` carries route geometry and is far too heavy to list
     let data, error;
     try{
