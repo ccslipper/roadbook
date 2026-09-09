@@ -3343,16 +3343,22 @@ async function loadRouteList(){
     const uid = getCurrentUid();
     // pull the stops sub-field only: full `data` carries route geometry and is far too heavy to list
     let data, error;
-    ({ data, error } = await cbDb.from('roadbook')
-      .select('id,name,updated_at,share_token,stops:data->stops')
-      .eq('user_id', uid)
-      .order('updated_at', { ascending:false }));
-    if(error){
-      // older PostgREST setups may reject the JSON sub-select — fall back to names only
+    try{
       ({ data, error } = await cbDb.from('roadbook')
-        .select('id,name,updated_at')
+        .select('id,name,updated_at,share_token,stops:data->stops')
         .eq('user_id', uid)
         .order('updated_at', { ascending:false }));
+    }catch(e){ error = e; }
+    if(error){
+      // this gateway rejects the JSON sub-select (`data->stops`) on some deployments
+      // with a thrown error rather than an {error} object, so the throw above must
+      // also be caught here for the fallback to actually run
+      try{
+        ({ data, error } = await cbDb.from('roadbook')
+          .select('id,name,updated_at')
+          .eq('user_id', uid)
+          .order('updated_at', { ascending:false }));
+      }catch(e2){ error = e2; }
       if(error) throw error;
     }
     loadedRoutes = data || [];
@@ -4424,7 +4430,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       + '<button class="ms-btn ghost" data-me="logout" style="width:100%;margin-top:6px;color:#B94A3C;border-color:#E7D4CE">退出登录</button>';
     $('msMeBody').querySelectorAll('[data-me]').forEach(el=>el.addEventListener('click', ()=>{
       const k = el.dataset.me;
-      if(k==='profile'){ const b=document.getElementById('profileBtn'); if(b) b.click(); }
+      if(k==='profile'){ const b=document.getElementById('goProfileBtn'); if(b) b.click(); }
       if(k==='logout'){ const b=document.getElementById('logoutBtn'); if(b) b.click(); }
     }));
   }
