@@ -3369,6 +3369,7 @@ async function loadRouteList(){
       if(error) throw error;
     }
     loadedRoutes = data || [];
+    window.loadedRoutes = loadedRoutes; // `let`/`const` module-scope vars aren't auto-exposed on window — the mobile shell reads this explicitly
     window.__rbDebug = { uid: uid, stage: 'done', count: loadedRoutes.length };
     if(!loadedRoutes.length){
       wrap.innerHTML = '<div class="rc-empty">还没有路书<br>点下面"新建路书"开始吧</div>';
