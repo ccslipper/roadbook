@@ -3348,18 +3348,16 @@ async function loadRouteList(){
     if(!uid){ uid = await hydrateLoginState(); }
     if(!uid){ await new Promise(r=>setTimeout(r,400)); uid = getCurrentUid(); }
     window.__rbDebug = { uid: uid, stage: 'querying' };
-    // pull the stops sub-field only: full `data` carries route geometry and is far too heavy to list
+    // the gateway's `data->stops` jsonb sub-select is unsupported here (always errors),
+    // so pull the full `data` column directly and derive the stop count client-side
     let data, error;
     try{
       ({ data, error } = await cbDb.from('roadbook')
-        .select('id,name,updated_at,share_token,stops:data->stops')
+        .select('id,name,updated_at,share_token,data')
         .eq('user_id', uid)
         .order('updated_at', { ascending:false }));
     }catch(e){ error = e; }
     if(error){
-      // this gateway rejects the JSON sub-select (`data->stops`) on some deployments
-      // with a thrown error rather than an {error} object, so the throw above must
-      // also be caught here for the fallback to actually run
       try{
         ({ data, error } = await cbDb.from('roadbook')
           .select('id,name,updated_at')
@@ -3735,7 +3733,7 @@ async function handleIncomingShare(){
 function showAcceptShareDialog(row){
   const stops = (row.data && row.data.stops) || [];
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:'+(document.body.classList.contains('mobile-on')?9999:90)+';display:flex;align-items:center;justify-content:center;padding:20px;';
   const panel=document.createElement('div');
   panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:400px;box-shadow:0 10px 34px rgba(0,0,0,.3);';
   panel.innerHTML = '<div style="font-size:12px;color:#5B6B67;">有人给你分享了一条路书</div>'
@@ -4135,16 +4133,33 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   }
   $('msTabBar').querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>goScreen(b.dataset.s)));
 
+  function persistOrder(ids){ try{ localStorage.setItem('rb_order_'+(getCurrentUid()||''), JSON.stringify(ids)); }catch(e){} }
+  function applyStoredOrder(rs){
+    let saved = [];
+    try{ saved = JSON.parse(localStorage.getItem('rb_order_'+(getCurrentUid()||''))||'[]'); }catch(e){}
+    if(!saved.length) return rs;
+    const byId = {}; rs.forEach(r=>{ byId[r.id]=r; });
+    const ordered = saved.map(id=>byId[id]).filter(Boolean);
+    rs.forEach(r=>{ if(saved.indexOf(r.id)<0) ordered.push(r); });
+    return ordered;
+  }
+  let dragIdx = null, dragEl = null, dragStartY = 0, dragOffsetY = 0;
+
   function renderList(){
-    const rs = window.loadedRoutes || [];
-    $('msListSub').textContent = rs.length ? (rs.length + ' 条路书') : '还没有路书，点右上角新建';
-    $('msListBody').innerHTML = rs.length ? rs.map(function(r){
+    const rs = applyStoredOrder((window.loadedRoutes || []).slice());
+    window.__msOrderedRoutes = rs;
+    $('msListSub').textContent = rs.length ? (rs.length + ' 条路书 · 按住 ≡ 拖动排序') : '还没有路书，点右上角新建';
+    $('msListBody').innerHTML = rs.length ? rs.map(function(r, idx){
       const n = (r.data && r.data.stops && r.data.stops.length) || 0;
-      return '<div class="ms-card" data-open="'+esc(r.id)+'" data-name="'+esc(r.name||'未命名')+'">'
-        + '<div class="ms-row"><div style="flex:1;min-width:0">'
+      return '<div class="ms-card" data-idx="'+idx+'" data-id="'+esc(r.id)+'" style="display:flex;align-items:center;gap:10px;touch-action:none">'
+        + '<div data-drag="'+idx+'" style="flex:0 0 auto;font-size:18px;color:#B4BDB4;padding:6px;cursor:grab;touch-action:none">⠿</div>'
+        + '<div data-open="'+esc(r.id)+'" data-name="'+esc(r.name||'未命名')+'" style="flex:1;min-width:0;display:flex;align-items:center;gap:11px">'
+        + '<div style="flex:1;min-width:0">'
         + '<div style="font-size:16px;font-weight:700">'+esc(r.name||'未命名路书')+'</div>'
-        + '<div class="ms-sub">'+n+' 个点位'+(r.updated_at? ' · 更新于 '+String(r.updated_at).slice(0,10):'')+'</div>'
-        + '</div><div style="color:#B4BDB4">›</div></div></div>';
+        + '<div class="ms-sub">'+n+' 个点位'+(r.updated_at? ' · 更新于 '+String(r.updated_at).slice(0,10):'')+(r.share_token? ' · 已分享':'')+'</div>'
+        + '</div><div style="color:#B4BDB4">›</div></div>'
+        + (r.share_token? '<button data-revoke="'+esc(r.id)+'" style="flex:0 0 auto;border:1px solid #E7D4CE;background:#fff;color:#B94A3C;border-radius:999px;padding:6px 10px;font-size:11.5px;font-weight:600">撤回分享</button>' : '')
+        + '</div>';
     }).join('') : ('<div class="ms-card" style="text-align:center;color:#8A968F">还没有路书<br>点右上角「＋ 新建」开始'
       + (window.__rbDebug ? '<div style="margin-top:14px;font-size:10px;color:#B4BDB4;word-break:break-all">'+esc(JSON.stringify(window.__rbDebug))+'</div>' : '')
       + '</div>');
@@ -4154,6 +4169,58 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         mTag=null; mView='timeline'; mRiding=false;
         $('msViewTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v==='timeline'));
         goScreen('plan'); renderPlan();
+      });
+    });
+    $('msListBody').querySelectorAll('[data-revoke]').forEach(el=>{
+      el.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        if(!confirm('撤回分享后，别人手上的链接会失效，确定撤回吗？')) return;
+        try{
+          await cbDb.from('roadbook').update({ share_token: null }).eq('id', el.dataset.revoke).eq('user_id', getCurrentUid());
+          toast('已撤回分享');
+          if(window.loadRouteList) await loadRouteList();
+        }catch(err){ toast('撤回失败：'+(err.message||'')); }
+      });
+    });
+    $('msListBody').querySelectorAll('[data-drag]').forEach(handle=>{
+      handle.addEventListener('pointerdown', (e)=>{
+        e.preventDefault();
+        dragIdx = +handle.dataset.drag;
+        dragEl = handle.closest('.ms-card');
+        dragStartY = e.clientY;
+        dragEl.style.position='relative'; dragEl.style.zIndex='5'; dragEl.style.boxShadow='0 8px 20px rgba(0,0,0,.15)';
+        handle.setPointerCapture(e.pointerId);
+      });
+      handle.addEventListener('pointermove', (e)=>{
+        if(dragIdx==null || !dragEl) return;
+        dragOffsetY = e.clientY - dragStartY;
+        dragEl.style.transform = 'translateY('+dragOffsetY+'px)';
+        const cards = Array.from($('msListBody').querySelectorAll('.ms-card'));
+        const overEl = cards.find(c=>{
+          if(c===dragEl) return false;
+          const rect = c.getBoundingClientRect();
+          return e.clientY > rect.top && e.clientY < rect.bottom;
+        });
+        if(overEl){
+          const overIdx = +overEl.dataset.idx;
+          const rs = window.__msOrderedRoutes;
+          const moved = rs.splice(dragIdx,1)[0];
+          rs.splice(overIdx,0,moved);
+          persistOrder(rs.map(r=>r.id));
+          dragIdx = overIdx;
+          dragStartY = e.clientY;
+          renderList();
+          const nh = $('msListBody').querySelector('[data-drag="'+dragIdx+'"]');
+          if(nh){ dragEl = nh.closest('.ms-card'); nh.setPointerCapture(e.pointerId); }
+        }
+      });
+      handle.addEventListener('pointerup', ()=>{
+        if(dragEl){ dragEl.style.position=''; dragEl.style.zIndex=''; dragEl.style.boxShadow=''; dragEl.style.transform=''; }
+        dragIdx=null; dragEl=null;
+      });
+      handle.addEventListener('pointercancel', ()=>{
+        if(dragEl){ dragEl.style.position=''; dragEl.style.zIndex=''; dragEl.style.boxShadow=''; dragEl.style.transform=''; }
+        dragIdx=null; dragEl=null;
       });
     });
   }
