@@ -531,6 +531,7 @@
     z-index:15;
   }
   #drawer.open{transform:translateY(0);}
+  #drawer.with-panel{right:360px;}
   #drawer.collapsed #drawer-body{display:none;}
   #drawer.collapsed{max-height:none;}
   #drawer-collapse{background:none;border:none;font-size:15px;cursor:pointer;color:var(--ink-soft);padding:0 4px;}
@@ -637,6 +638,7 @@
     #mapwrap{position:relative;}
     #drawer{max-height:72%;}
     #recommendPanel{width:100%;}
+    #drawer.with-panel{right:0;z-index:13;} /* 手机上推荐面板占满宽度，抽屉让位，不再横向共存 */
     #basemapToggle{top:auto;bottom:14px;right:14px;}
     #nextStopBar{bottom:70px;max-width:88%;}
     #nextStopName{max-width:44vw;}
@@ -1259,7 +1261,7 @@ document.getElementById('saveBtn').addEventListener('click', ()=> doSave(true));
 /* ============================================================
    地图 / 高德接入
 ============================================================ */
-let map=null, geocoder=null, drivingSvc=null, placeSearchSvc=null, poiRecommendSvc=null, curatedSearchSvc=null, teslaSvc=null, foodSearchSvc=null, connected=false;
+let map=null, geocoder=null, drivingSvc=null, placeSearchSvc=null, poiRecommendSvc=null, curatedSearchSvc=null, teslaSvc=null, chargeSvc=null, gasSvc=null, foodSearchSvc=null, connected=false;
 let markers=[], polylines=[];
 let routeDirty=true;
 let pickingForStopId=null;
@@ -1334,6 +1336,8 @@ function initMap(){
     poiRecommendSvc = new AMap.PlaceSearch({ type:'风景名胜|公园广场|文物古迹|自然地物|水系|博物馆|游乐场', extensions:'all', pageSize:15, citylimit:false });
     curatedSearchSvc = new AMap.PlaceSearch({ extensions:'all', pageSize:1, citylimit:false });
     teslaSvc = new AMap.PlaceSearch({ extensions:'all', pageSize:10, citylimit:false });
+    chargeSvc = new AMap.PlaceSearch({ type:'充电站', extensions:'all', pageSize:15, citylimit:false });
+    gasSvc = new AMap.PlaceSearch({ type:'加油站', extensions:'all', pageSize:15, citylimit:false });
     foodSearchSvc = new AMap.PlaceSearch({ type:'餐饮服务', extensions:'all', pageSize:3, citylimit:false });
     satelliteLayer = new AMap.TileLayer.Satellite();
     roadNetLayer = new AMap.TileLayer.RoadNet();
@@ -2159,24 +2163,162 @@ function makePickList(){
   return {list, bottomBar, addBtn, picked};
 }
 
-function insertPickedAsStops(segIndex, picked){
-  const from = state.stops[segIndex];
-  const day = from? from.day : 1;
-  let insertAt = segIndex+1;
-  picked.forEach(poi=>{
+/* 一次性插入多个点时，按"离上一个点最近的先走"贪心排序，
+   而不是按勾选顺序插入——避免明明顺路却被排得来回跑 */
+function haversineApproxM(lng1,lat1,lng2,lat2){
+  const dLat=(lat2-lat1)*111320;
+  const dLng=(lng2-lng1)*111320*Math.cos(((lat1+lat2)/2)*Math.PI/180);
+  return Math.sqrt(dLat*dLat+dLng*dLng);
+}
+function orderByNearestNeighbor(items, anchorLng, anchorLat, getLngLat){
+  const remaining = items.slice();
+  const ordered = [];
+  let curLng=anchorLng, curLat=anchorLat;
+  while(remaining.length){
+    let bestIdx=0, bestDist=Infinity;
+    remaining.forEach((it,i)=>{
+      const [lng,lat] = getLngLat(it);
+      if(lng==null||lat==null) return;
+      const d = haversineApproxM(curLng,curLat,lng,lat);
+      if(d<bestDist){ bestDist=d; bestIdx=i; }
+    });
+    const next = remaining.splice(bestIdx,1)[0];
+    ordered.push(next);
+    const [nl,na] = getLngLat(next);
+    if(nl!=null&&na!=null){ curLng=nl; curLat=na; }
+  }
+  return ordered;
+}
+
+function insertPickedAsStops(insertIndex, anchorStop, picked, tag){
+  const day = anchorStop? anchorStop.day : 1;
+  let insertAt = insertIndex;
+  let poiList = Array.from(picked.values());
+  if(anchorStop && anchorStop.lng!=null && anchorStop.lat!=null){
+    poiList = orderByNearestNeighbor(poiList, anchorStop.lng, anchorStop.lat, p=>[p.location.lng, p.location.lat]);
+  }
+  poiList.forEach(poi=>{
     const stop = {
       id:'s'+Date.now()+Math.random().toString(36).slice(2,6),
-      day, name:poi.name, tag:'景点',
+      day, name:poi.name, tag: tag||'景点',
       note:poi.address||'', photo:(poi.photos&&poi.photos[0]&&poi.photos[0].url)||'', color:'',
       lng:poi.location.lng, lat:poi.location.lat, geocodeFailed:false
     };
     state.stops.splice(insertAt,0,stop);
     insertAt++;
   });
-  const n = picked.size;
+  const n = poiList.length;
   markDirty(); rebuildSegmentsSkeleton(); saveState(); renderAll();
-  toast(`已添加 ${n} 个景点，点"重新规划"更新路线`);
+  toast(`已按顺路顺序添加 ${n} 个点，点"重新规划"更新路线`);
   return n;
+}
+
+/* ---------- 沿途推荐列表：点一条看它在哪、加进去要多绕多少路 ----------
+   跟"勾选框=要不要加"分开：点条目本身是预览，不会直接选中它。 */
+let previewMarker = null;
+function showPreviewOnMap(poi){
+  if(!map) return;
+  const pos = [poi.location.lng, poi.location.lat];
+  if(!previewMarker){
+    const el = document.createElement('div');
+    el.style.cssText = 'width:22px;height:22px;border-radius:50%;background:#8B5CF6;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);';
+    previewMarker = new AMap.Marker({ position: pos, content: el, offset: new AMap.Pixel(-11,-11), map, zIndex:200 });
+  } else {
+    previewMarker.setPosition(pos);
+    previewMarker.setMap(map);
+  }
+  map.setZoomAndCenter(13, pos);
+}
+
+/* 算"把这个点插进 anchor→next 之间，会比原来多绕多少"：
+   分别请求 anchor→poi 和 poi→next 两段真实驾车路线，加起来减掉原本这段的里程/时长。
+   如果没有 next（插在路线末尾），就只显示 anchor→poi 这一段本身有多远。 */
+function computeDetourImpact(poi, anchorStop, nextStop, baselineKm, baselineMin){
+  return new Promise((resolve)=>{
+    if(!anchorStop || anchorStop.lng==null || anchorStop.lat==null){ resolve(null); return; }
+    const poiPt=[poi.location.lng, poi.location.lat];
+    const anchorPt=[anchorStop.lng, anchorStop.lat];
+    withTimeout(new Promise(r=>{
+      try{ drivingSvc.search(anchorPt, poiPt, (status,result)=> r({status,result})); }
+      catch(e){ r({timedOut:true}); }
+    }), 8000).then(r1=>{
+      const leg1 = (r1 && !r1.timedOut && r1.status==='complete' && r1.result.routes && r1.result.routes[0])
+        ? { km: r1.result.routes[0].distance/1000, min: r1.result.routes[0].time/60 } : null;
+      if(!leg1){ resolve(null); return; }
+      if(!nextStop || nextStop.lng==null || nextStop.lat==null){
+        resolve({ singleLeg:true, totalKm:leg1.km, totalMin:leg1.min });
+        return;
+      }
+      withTimeout(new Promise(r=>{
+        try{ drivingSvc.search(poiPt, [nextStop.lng,nextStop.lat], (status,result)=> r({status,result})); }
+        catch(e){ r({timedOut:true}); }
+      }), 8000).then(r2=>{
+        const leg2 = (r2 && !r2.timedOut && r2.status==='complete' && r2.result.routes && r2.result.routes[0])
+          ? { km: r2.result.routes[0].distance/1000, min: r2.result.routes[0].time/60 } : null;
+        if(!leg2){ resolve({ singleLeg:true, totalKm:leg1.km, totalMin:leg1.min }); return; }
+        const totalKm=leg1.km+leg2.km, totalMin=leg1.min+leg2.min;
+        const addKm = baselineKm!=null? totalKm-baselineKm : null;
+        const addMin = baselineMin!=null? totalMin-baselineMin : null;
+        resolve({ totalKm, totalMin, addKm, addMin });
+      });
+    });
+  });
+}
+
+/* 给一个已经建好 checkbox/info 的结果条目，接上"点击预览"的行为。
+   ctx 两种用法：
+   - {anchorStop, nextStop, baselineKm, baselineMin} —— 算真实绕路的额外里程/时长
+   - {nearestOf:[stops]} —— 没有明确"插在哪两点之间"（比如美食搜多个锚点），退化成直线距离 */
+function attachPoiPreview(item, cb, poi, ctx){
+  const box=document.createElement('div');
+  box.className='poi-impact';
+  box.style.cssText='display:none;margin-top:6px;padding:6px 8px;background:#F0F2EC;border-radius:6px;font-size:11px;color:var(--ink-soft);line-height:1.6;';
+  item.appendChild(box);
+  let computed=false;
+  item.addEventListener('click', (e)=>{
+    if(e.target===cb) return; // 勾选框自己的点击不触发预览，走它原来的 change 逻辑
+    const opening = box.style.display==='none';
+    box.style.display = opening? 'block':'none';
+    if(!opening) return;
+    showPreviewOnMap(poi);
+    if(computed) return;
+    computed=true;
+    if(!connected){ box.textContent='还没连接地图，看不了位置和路程影响'; return; }
+    if(ctx.nearestOf){
+      let best=null;
+      ctx.nearestOf.forEach(s=>{
+        if(!s||s.lng==null) return;
+        const d=haversineApproxM(poi.location.lng, poi.location.lat, s.lng, s.lat);
+        if(!best||d<best.d) best={s,d};
+      });
+      box.textContent = best? ('📍 距「'+best.s.name+'」直线约 '+(best.d/1000).toFixed(1)+' 公里（已在地图上标出位置）')
+                             : '📍 已在地图上标出位置';
+      return;
+    }
+    box.textContent = '📍 已在地图上标出位置，正在算插进来要多绕多少路…';
+    computeDetourImpact(poi, ctx.anchorStop, ctx.nextStop, ctx.baselineKm, ctx.baselineMin).then(res=>{
+      if(box.style.display==='none') return; // 用户已经收起了，不用再更新
+      if(!res){ box.textContent='📍 已在地图上标出位置，路程影响算不出来（网络或路线数据问题）'; return; }
+      if(res.singleLeg){
+        box.textContent = '📍 位置已标出 · 距「'+(ctx.anchorStop&&ctx.anchorStop.name||'上一站')+'」实际路程约 '+res.totalKm.toFixed(1)+' 公里 · '+fmtMin(Math.round(res.totalMin));
+      } else if(res.addKm!=null){
+        const sign = res.addKm>=0? '多绕':'反而少绕';
+        box.textContent = '📍 位置已标出 · 插进这里预计比原路线'+sign+' '+Math.abs(res.addKm).toFixed(1)+' 公里 · '+fmtMin(Math.round(Math.abs(res.addMin)));
+      } else {
+        box.textContent = '📍 位置已标出 · 经过这里全程约 '+res.totalKm.toFixed(1)+' 公里 · '+fmtMin(Math.round(res.totalMin));
+      }
+    });
+  });
+}
+
+function segPathFor(segIndex){
+  const seg = state.segments[segIndex];
+  const from = state.stops[segIndex], to = state.stops[segIndex+1];
+  let path = seg && seg.path;
+  if((!path||path.length<2) && from&&from.lng&&from.lat&&to&&to.lng&&to.lat){
+    path = [[from.lng,from.lat],[to.lng,to.lat]];
+  }
+  return path;
 }
 
 function stopFoodSection(stop){
@@ -2364,25 +2506,55 @@ function curatedRecommendSection(segIndex){
       bottomBar.style.display = picked.size? 'block':'none';
       addBtn.textContent = `添加选中的 ${picked.size} 个到行程`;
     });
-    item.addEventListener('click',(e)=>{ if(e.target!==cb && e.target.tagName!=='BUTTON' && !cb.disabled){ cb.checked=!cb.checked; cb.dispatchEvent(new Event('change')); } });
+    const previewBox=document.createElement('div');
+    previewBox.className='poi-impact';
+    previewBox.style.cssText='display:none;margin-top:6px;padding:6px 8px;background:#F0F2EC;border-radius:6px;font-size:11px;color:var(--ink-soft);line-height:1.6;';
+    item.appendChild(previewBox);
+    let previewComputed=false;
+    item.addEventListener('click',(e)=>{
+      if(e.target===cb || e.target.tagName==='BUTTON') return;
+      if(!resolvedPoi){ toast('这个点还没解析出坐标，等一下或点重试'); return; }
+      const opening = previewBox.style.display==='none';
+      previewBox.style.display = opening? 'block':'none';
+      if(!opening) return;
+      showPreviewOnMap(resolvedPoi);
+      if(previewComputed) return;
+      previewComputed=true;
+      previewBox.textContent='📍 已在地图上标出位置，正在算插进来要多绕多少路…';
+      const baseSeg = state.segments[segIndex];
+      computeDetourImpact(resolvedPoi, state.stops[segIndex], state.stops[segIndex+1], baseSeg&&baseSeg.km, baseSeg&&baseSeg.min).then(res=>{
+        if(previewBox.style.display==='none') return;
+        if(!res){ previewBox.textContent='📍 位置已标出，路程影响算不出来（网络或路线数据问题）'; return; }
+        if(res.singleLeg){
+          previewBox.textContent = '📍 位置已标出 · 距上一站实际路程约 '+res.totalKm.toFixed(1)+' 公里 · '+fmtMin(Math.round(res.totalMin));
+        } else if(res.addKm!=null){
+          const sign = res.addKm>=0? '多绕':'反而少绕';
+          previewBox.textContent = '📍 位置已标出 · 插进这里预计比原路线'+sign+' '+Math.abs(res.addKm).toFixed(1)+' 公里 · '+fmtMin(Math.round(Math.abs(res.addMin)));
+        } else {
+          previewBox.textContent = '📍 位置已标出 · 经过这里全程约 '+res.totalKm.toFixed(1)+' 公里 · '+fmtMin(Math.round(res.totalMin));
+        }
+      });
+    });
   });
 
   addBtn.addEventListener('click', ()=>{
-    insertPickedAsStops(segIndex, picked);
+    insertPickedAsStops(segIndex+1, state.stops[segIndex], picked, '景点');
     picked.clear(); bottomBar.style.display='none';
   });
 
   return wrap;
 }
 
-function teslaChargerSection(segIndex){
+/* 通用的"沿途搜索一类地点"面板：充电站、加油站都是这个壳子，
+   区别只在于用什么服务查、怎么排优先级 */
+function corridorSearchSection(cfg){
   const wrap=document.createElement('div');
-  const h=document.createElement('div'); h.className='section-h'; h.textContent='特斯拉超充';
+  const h=document.createElement('div'); h.className='section-h'; h.textContent=cfg.title;
   wrap.appendChild(h);
 
   const btn=document.createElement('button');
   btn.className='btn ghost small';
-  btn.textContent='⚡ 搜这一段沿途的特斯拉超充站';
+  btn.textContent=cfg.buttonLabel;
   wrap.appendChild(btn);
 
   const {list, bottomBar, addBtn, picked} = makePickList();
@@ -2391,12 +2563,7 @@ function teslaChargerSection(segIndex){
 
   btn.addEventListener('click', ()=>{
     if(!connected){ toast('请先在顶部连接高德地图'); return; }
-    const seg = state.segments[segIndex];
-    const from = state.stops[segIndex], to = state.stops[segIndex+1];
-    let path = seg && seg.path;
-    if((!path||path.length<2) && from&&from.lng&&from.lat&&to&&to.lng&&to.lat){
-      path = [[from.lng,from.lat],[to.lng,to.lat]];
-    }
+    const path = cfg.getPath();
     if(!path || path.length<2){ toast('这一段还没有路线数据，先"重新计算这一段"'); return; }
     const samples = sampleAlongPath(path, Math.min(5, Math.max(3, Math.round(path.length/40))));
     btn.textContent='搜索中…'; btn.disabled=true;
@@ -2408,14 +2575,13 @@ function teslaChargerSection(segIndex){
     const found = new Map();
     samples.forEach(pt=>{
       withTimeout(new Promise(resolve=>{
-        try{ teslaSvc.searchNearBy('特斯拉', pt, 15000, (status, result)=> resolve({status, result})); }
+        try{ cfg.search(pt, (status, result)=> resolve({status, result})); }
         catch(err){ resolve({timedOut:true}); }
       }), 8000).then(r=>{
         pending--;
         if(r && !r.timedOut && r.status==='complete' && r.result.poiList && r.result.poiList.pois){
           r.result.poiList.pois.forEach(poi=>{
-            // keyword search can return loosely-related results; keep it to things actually named like a Tesla station
-            if(/特斯拉/.test(poi.name)) found.set(poi.id, poi);
+            if(!cfg.filterFn || cfg.filterFn(poi)) found.set(poi.id, poi);
           });
         }
         if(pending===0) renderResults();
@@ -2423,10 +2589,14 @@ function teslaChargerSection(segIndex){
     });
 
     function renderResults(){
-      btn.textContent='⚡ 搜这一段沿途的特斯拉超充站'; btn.disabled=false;
-      const results = Array.from(found.values()).slice(0,15);
+      btn.textContent=cfg.buttonLabel; btn.disabled=false;
+      let results = Array.from(found.values());
+      if(cfg.priorityFn){
+        results.sort((a,b)=> (cfg.priorityFn(b)?1:0) - (cfg.priorityFn(a)?1:0));
+      }
+      results = results.slice(0,20);
       if(!results.length){
-        list.innerHTML='<div class="ps-empty">这一段 15 公里范围内没搜到特斯拉超充站</div>';
+        list.innerHTML='<div class="ps-empty">'+cfg.emptyText+'</div>';
         list.style.display='block';
         return;
       }
@@ -2444,11 +2614,12 @@ function teslaChargerSection(segIndex){
           addBtn.textContent = `添加选中的 ${picked.size} 个到行程`;
         });
         const info=document.createElement('div'); info.style.flex='1';
-        const nm=document.createElement('div'); nm.className='ps-name'; nm.textContent=poi.name;
+        const isPriority = cfg.priorityFn && cfg.priorityFn(poi);
+        const nm=document.createElement('div'); nm.className='ps-name'; nm.textContent=(isPriority?'⭐ ':'')+poi.name;
         const ad=document.createElement('div'); ad.className='ps-addr'; ad.textContent=poi.address||(poi.pname+poi.cityname+poi.adname)||'';
         info.appendChild(nm); info.appendChild(ad);
         item.appendChild(cb); item.appendChild(info);
-        item.addEventListener('click',(e)=>{ if(e.target!==cb){ cb.checked=!cb.checked; cb.dispatchEvent(new Event('change')); } });
+        attachPoiPreview(item, cb, poi, { anchorStop:cfg.anchorStop, nextStop:cfg.nextStop, baselineKm:cfg.baselineKm, baselineMin:cfg.baselineMin });
         list.appendChild(item);
       });
       list.style.display='block';
@@ -2456,21 +2627,129 @@ function teslaChargerSection(segIndex){
   });
 
   addBtn.addEventListener('click', ()=>{
-    const from = state.stops[segIndex];
-    const day = from? from.day : 1;
-    let insertAt = segIndex+1;
-    picked.forEach(poi=>{
-      const stop = {
-        id:'s'+Date.now()+Math.random().toString(36).slice(2,6),
-        day, name:poi.name, tag:'补能',
-        note:poi.address||'', photo:(poi.photos&&poi.photos[0]&&poi.photos[0].url)||'', color:'',
-        lng:poi.location.lng, lat:poi.location.lat, geocodeFailed:false
-      };
-      state.stops.splice(insertAt,0,stop); insertAt++;
+    insertPickedAsStops(cfg.insertIndex, cfg.anchorStop, picked, cfg.tag);
+    picked.clear(); bottomBar.style.display='none';
+  });
+
+  return wrap;
+}
+
+function chargingStationSection(segIndex){
+  const seg = state.segments[segIndex];
+  return corridorSearchSection({
+    title:'顺路充电站',
+    buttonLabel:'⚡ 搜这一段沿途的充电站',
+    emptyText:'这一段附近没搜到充电站',
+    tag:'补能',
+    insertIndex: segIndex+1,
+    anchorStop: state.stops[segIndex],
+    nextStop: state.stops[segIndex+1],
+    baselineKm: seg&&seg.km, baselineMin: seg&&seg.min,
+    getPath: ()=> segPathFor(segIndex),
+    search: (pt, cb)=> chargeSvc.searchNearBy('', pt, 8000, cb),
+    priorityFn: poi=> /特斯拉|tesla/i.test(poi.name)
+  });
+}
+
+function gasStationSection(segIndex){
+  const seg = state.segments[segIndex];
+  return corridorSearchSection({
+    title:'顺路加油站',
+    buttonLabel:'⛽ 搜这一段沿途的加油站',
+    emptyText:'这一段附近没搜到加油站',
+    tag:'补能',
+    insertIndex: segIndex+1,
+    anchorStop: state.stops[segIndex],
+    nextStop: state.stops[segIndex+1],
+    baselineKm: seg&&seg.km, baselineMin: seg&&seg.min,
+    getPath: ()=> segPathFor(segIndex),
+    search: (pt, cb)=> gasSvc.searchNearBy('', pt, 10000, cb),
+    priorityFn: poi=> /中国石油|中石油|中国石化|中石化|CNPC|Sinopec|中国石油天然气|昆仑/i.test(poi.name)
+  });
+}
+
+/* 沿途美食：不再挂在单个点位详情里，而是搜这一段路上（起点、终点，
+   如果是跨点位区间还包括中途的每个真实停靠点）附近的餐饮，更符合"路上顺便吃"的实际用法 */
+function segmentFoodSection(segIndex, opts){
+  opts = opts || {};
+  const wrap=document.createElement('div');
+  const h=document.createElement('div'); h.className='section-h'; h.textContent='沿途美食';
+  wrap.appendChild(h);
+
+  const anchorPoints = opts.anchorPoints || [state.stops[segIndex], state.stops[segIndex+1]];
+  const validPoints = anchorPoints.filter(s=> s && s.lng!=null && s.lat!=null);
+
+  const btn=document.createElement('button');
+  btn.className='btn ghost small';
+  btn.textContent='🍜 搜这段起点/终点附近的美食';
+  wrap.appendChild(btn);
+
+  const {list, bottomBar, addBtn, picked} = makePickList();
+  list.style.display='none';
+  wrap.appendChild(list); wrap.appendChild(bottomBar);
+
+  btn.addEventListener('click', ()=>{
+    if(!connected){ toast('请先在顶部连接高德地图'); return; }
+    if(!validPoints.length){ toast('这段的起点/终点还没有坐标'); return; }
+    btn.textContent='搜索中…'; btn.disabled=true;
+    list.innerHTML=''; list.style.display='none';
+    bottomBar.style.display='none';
+    picked.clear();
+
+    let pending = validPoints.length;
+    const found = new Map();
+    validPoints.forEach(stop=>{
+      withTimeout(new Promise(resolve=>{
+        try{ foodSearchSvc.searchNearBy('', [stop.lng, stop.lat], 3000, (status, result)=> resolve({status, result})); }
+        catch(err){ resolve({timedOut:true}); }
+      }), 8000).then(r=>{
+        pending--;
+        if(r && !r.timedOut && r.status==='complete' && r.result.poiList && r.result.poiList.pois){
+          r.result.poiList.pois.forEach(poi=> found.set(poi.id, poi));
+        }
+        if(pending===0) renderResults();
+      }).catch(()=>{ pending--; if(pending===0) renderResults(); });
     });
-    const n=picked.size; picked.clear(); bottomBar.style.display='none';
-    markDirty(); rebuildSegmentsSkeleton(); saveState(); renderAll();
-    toast(`已添加 ${n} 个超充站，点"重新规划"更新路线`);
+
+    function renderResults(){
+      btn.textContent='🍜 搜这段起点/终点附近的美食'; btn.disabled=false;
+      const results = Array.from(found.values()).slice(0,20);
+      if(!results.length){
+        list.innerHTML='<div class="ps-empty">附近 3 公里内没搜到收录的餐饮</div>';
+        list.style.display='block';
+        return;
+      }
+      list.innerHTML='';
+      results.forEach(poi=>{
+        const item=document.createElement('div');
+        item.className='ps-item';
+        item.style.cssText='display:flex;gap:8px;align-items:flex-start;';
+        const cb=document.createElement('input');
+        cb.type='checkbox';
+        cb.style.cssText='margin-top:3px;flex:0 0 auto;';
+        cb.addEventListener('change', ()=>{
+          if(cb.checked) picked.set(poi.id, poi); else picked.delete(poi.id);
+          bottomBar.style.display = picked.size? 'block':'none';
+          addBtn.textContent = `添加选中的 ${picked.size} 个到行程`;
+        });
+        const info=document.createElement('div'); info.style.flex='1';
+        const rating = poi.biz_ext && poi.biz_ext.rating ? (' · ⭐'+poi.biz_ext.rating) : '';
+        const nm=document.createElement('div'); nm.className='ps-name'; nm.textContent=poi.name+rating;
+        const ad=document.createElement('div'); ad.className='ps-addr'; ad.textContent=poi.address||(poi.pname+poi.cityname+poi.adname)||'';
+        info.appendChild(nm); info.appendChild(ad);
+        item.appendChild(cb); item.appendChild(info);
+        attachPoiPreview(item, cb, poi, { nearestOf: validPoints });
+        list.appendChild(item);
+      });
+      list.style.display='block';
+    }
+  });
+
+  addBtn.addEventListener('click', ()=>{
+    const insertIndex = opts.insertIndex!=null ? opts.insertIndex : segIndex+1;
+    const anchorStop = opts.anchorStop || state.stops[segIndex];
+    insertPickedAsStops(insertIndex, anchorStop, picked, '美食');
+    picked.clear(); bottomBar.style.display='none';
   });
 
   return wrap;
@@ -2553,7 +2832,7 @@ function liveRecommendSection(segIndex){
           info.appendChild(img);
         }
         item.appendChild(cb); item.appendChild(info);
-        item.addEventListener('click',(e)=>{ if(e.target!==cb){ cb.checked=!cb.checked; cb.dispatchEvent(new Event('change')); } });
+        attachPoiPreview(item, cb, poi, { anchorStop: state.stops[segIndex], nextStop: state.stops[segIndex+1], baselineKm: (state.segments[segIndex]&&state.segments[segIndex].km), baselineMin: (state.segments[segIndex]&&state.segments[segIndex].min) });
         list.appendChild(item);
       });
       list.style.display='block';
@@ -2561,7 +2840,7 @@ function liveRecommendSection(segIndex){
   });
 
   addBtn.addEventListener('click', ()=>{
-    insertPickedAsStops(segIndex, picked);
+    insertPickedAsStops(segIndex+1, state.stops[segIndex], picked, '景点');
     picked.clear(); bottomBar.style.display='none';
   });
 
@@ -2576,12 +2855,16 @@ function openRecommendPanel(segIndex){
   const body=document.getElementById('recommendPanel-body');
   body.innerHTML='';
   body.appendChild(curatedRecommendSection(segIndex));
-  body.appendChild(teslaChargerSection(segIndex));
+  body.appendChild(segmentFoodSection(segIndex));
+  body.appendChild(chargingStationSection(segIndex));
+  body.appendChild(gasStationSection(segIndex));
   body.appendChild(liveRecommendSection(segIndex));
   document.getElementById('recommendPanel').classList.add('open');
+  document.getElementById('drawer').classList.add('with-panel');
 }
 document.getElementById('recommendPanel-close').addEventListener('click', ()=>{
   document.getElementById('recommendPanel').classList.remove('open');
+  document.getElementById('drawer').classList.remove('with-panel');
 });
 
 function placeSearchField(getCurrentLabel, defaultQuery, onPick){
@@ -2735,7 +3018,7 @@ function refreshPhotoPreview(prevEl, url){
 function escapeHtml(s){ return s.replace(/"/g,'&quot;'); }
 
 function closeInfoPanels(){
-  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open','with-panel');
   document.getElementById('recommendPanel').classList.remove('open');
   document.querySelectorAll('.stop-row').forEach(r=>r.classList.remove('selected'));
   if(activeTagFilter && tagListPanelFor===activeTagFilter){ activeTagFilter=null; renderMap(); }
