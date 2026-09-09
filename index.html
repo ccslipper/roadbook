@@ -3681,7 +3681,10 @@ async function shareRoute(route, btn){
 
 function showShareDialog(name, link, copied){
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;';
+  // when the mobile app shell is showing (#mshell sits at z-index:9000), this
+  // modal needs to outrank it or it renders invisibly behind the shell
+  const z = document.body.classList.contains('mobile-on') ? 9999 : 90;
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:'+z+';display:flex;align-items:center;justify-content:center;padding:20px;';
   const panel=document.createElement('div');
   panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:400px;box-shadow:0 10px 34px rgba(0,0,0,.3);';
   panel.innerHTML = '<div style="font-size:15px;font-weight:700;margin-bottom:6px;">分享《'+escapeHtmlFull(name)+'》</div>'
@@ -4022,7 +4025,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   <div class="ms-scr" id="ms-plan">
     <div class="ms-head">
       <div class="ms-row">
-        <button class="ms-pill" id="msBackBtn" style="padding:6px 11px">‹</button>
+        <button class="ms-pill" id="msBackBtn" style="padding:11px 18px;font-size:15px;font-weight:700;min-width:44px;min-height:44px">‹ 返回</button>
         <div style="flex:1;min-width:0">
           <div style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="msPlanName">路书</div>
           <div class="ms-sub" id="msPlanMeta"></div>
@@ -4391,11 +4394,11 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     state.currentIndex = Math.max(0,(state.currentIndex||0)-1);
     saveState(); renderPlan();
   });
-  $('msShareBtn').addEventListener('click', ()=>{
-    document.body.classList.add('ms-recommend-open');
-    const b=document.getElementById('shareBtn');
-    if(b) b.click();
-    else { document.body.classList.remove('ms-recommend-open'); if(typeof toast==='function') toast('这个版本没找到分享按钮'); }
+  $('msShareBtn').addEventListener('click', async ()=>{
+    const route = (window.loadedRoutes||[]).find(r=>r.id===currentRouteId);
+    if(!route){ toast('请先回到路书列表重新打开这条路书再分享'); return; }
+    const dummyBtn = document.createElement('button');
+    await shareRoute(route, dummyBtn);
   });
 
   async function renderPlaza(){
