@@ -4512,6 +4512,123 @@ function buildXhsText(){
   return lines.join('\n');
 }
 
+/* 手机上"用浏览器打印导出 PDF"经常直接弹出连接打印机的系统对话框，而不是
+   "另存为 PDF"，等于导不出来。这里改成用 html2canvas 把预览区域截成长图，
+   再用 jsPDF 按 A4 高度切页拼成一份可以直接下载的 PDF 文件，不经过系统打印，
+   手机、电脑都一样能用。两个库都是运行时才按需从 CDN 加载（cdnjs 失败会自动
+   换 jsdelivr 试一次），网络不通时会给出提示，不影响其他功能。 */
+let __pdfLibsPromise = null;
+function ensurePdfLibs(){
+  if(__pdfLibsPromise) return __pdfLibsPromise;
+  const h2cSources = [
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
+  ];
+  const jspdfSources = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+  ];
+  function loadOneOf(sources, checkFn){
+    return (async ()=>{
+      for(const src of sources){
+        if(checkFn()) return true;
+        const ok = await new Promise(resolve=>{
+          const s=document.createElement('script'); s.src=src;
+          const timer=setTimeout(()=>resolve(false), 8000);
+          s.onload=()=>{ clearTimeout(timer); resolve(true); };
+          s.onerror=()=>{ clearTimeout(timer); resolve(false); };
+          document.head.appendChild(s);
+        });
+        if(ok && checkFn()) return true;
+      }
+      return checkFn();
+    })();
+  }
+  __pdfLibsPromise = (async ()=>{
+    const a = await loadOneOf(h2cSources, ()=>!!window.html2canvas);
+    const b = await loadOneOf(jspdfSources, ()=>!!(window.jspdf && window.jspdf.jsPDF));
+    return a && b;
+  })();
+  return __pdfLibsPromise;
+}
+
+async function exportTlPdfDirect(btn){
+  const oldText = btn.textContent;
+  btn.disabled = true; btn.textContent = '生成中…';
+  try{
+    const ok = await ensurePdfLibs();
+    if(!ok) throw new Error('PDF 组件加载失败，可能是网络问题，换用下面的"打印导出"或稍后重试');
+    const docEl = document.querySelector('#tl-preview .tl-doc');
+    if(!docEl) throw new Error('先看到右侧预览有内容再导出');
+    const canvas = await html2canvas(docEl, { scale:2, useCORS:true, backgroundColor:'#ffffff' });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:'pt', format:'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = canvas.height * imgW / canvas.width;
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    let heightLeft = imgH, position = 0;
+    pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    while(heightLeft > 0){
+      position = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
+    pdf.save((currentTravelogue.title||'游记') + '.pdf');
+  }catch(e){
+    toast('导出失败：'+(e.message||''));
+  }finally{
+    btn.disabled = false; btn.textContent = oldText;
+  }
+}
+
+/* 导出 Word：走的是"HTML 伪装成 .doc"这个老办法——Word / WPS 打开这种文件
+   会按 HTML 渲染再转成文档格式，不是真正的 .docx 二进制，但胜在不用引入任何
+   额外的库、图文样式基本保得住，对一篇游记来说够用了。 */
+function buildTlWordHtml(){
+  const t = currentTravelogue;
+  const included = (t.data.entries||[]).filter(e=>e.included);
+  let body = '<h1 style="font-size:22pt;margin:0 0 4pt;font-family:Microsoft YaHei,PingFang SC,sans-serif;">'+escapeHtmlFull(t.title||'未命名游记')+'</h1>'
+    + '<p style="font-size:10pt;color:#666;margin:0 0 20pt;">来自路书《'+escapeHtmlFull(t.route_name||'')+'》</p>';
+  if(!included.length){
+    body += '<p>还没有选中任何内容，回去把开关打开试试。</p>';
+  }
+  included.forEach(entry=>{
+    if(entry.type==='segment'){
+      body += '<p style="font-size:10pt;color:#888;margin:12pt 0 4pt;">↓ '+escapeHtmlFull(entry.name)+(entry.subtitle?'　'+escapeHtmlFull(entry.subtitle):'')+'</p>';
+      if(entry.photos && entry.photos.length){
+        entry.photos.forEach(src=>{ body += '<p><img src="'+src+'" style="width:320pt;max-width:100%;margin:4pt 0;"></p>'; });
+      }
+      if(entry.text) body += '<p style="font-size:11pt;line-height:1.8;">'+escapeHtmlFull(entry.text).replace(/\n/g,'<br>')+'</p>';
+      return;
+    }
+    if(entry.type==='point') body += '<h2 style="font-size:14pt;margin:16pt 0 4pt;">'+escapeHtmlFull(entry.name)+'</h2>';
+    if(entry.photos && entry.photos.length){
+      entry.photos.forEach(src=>{ body += '<p><img src="'+src+'" style="width:320pt;max-width:100%;margin:4pt 0;"></p>'; });
+    }
+    if(entry.text) body += '<p style="font-size:11pt;line-height:1.8;">'+escapeHtmlFull(entry.text).replace(/\n/g,'<br>')+'</p>';
+  });
+  return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    + '<head><meta charset="utf-8"><title>'+escapeHtmlFull(t.title||'游记')+'</title></head>'
+    + '<body>'+body+'</body></html>';
+}
+function exportTlWord(){
+  try{
+    const html = buildTlWordHtml();
+    const blob = new Blob(['﻿', html], { type:'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = (currentTravelogue.title||'游记') + '.doc';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 4000);
+  }catch(e){
+    toast('导出 Word 失败：'+(e.message||''));
+  }
+}
+
 function showTlExportPanel(){
   const included = currentTravelogue.data.entries.filter(e=>e.included);
   const allPhotos = [];
@@ -4547,9 +4664,21 @@ function showTlExportPanel(){
     plazaCb.disabled=false;
   });
 
+  const pdfDirectBtn=document.createElement('button');
+  pdfDirectBtn.className='btn small'; pdfDirectBtn.style.cssText='width:100%;margin-bottom:8px;';
+  pdfDirectBtn.textContent='📄 导出 PDF（直接下载，手机也能用）';
+  pdfDirectBtn.addEventListener('click', ()=> exportTlPdfDirect(pdfDirectBtn));
+  panel.appendChild(pdfDirectBtn);
+
+  const wordBtn=document.createElement('button');
+  wordBtn.className='btn ghost small'; wordBtn.style.cssText='width:100%;margin-bottom:8px;';
+  wordBtn.textContent='📝 导出 Word（.doc，可以再编辑排版）';
+  wordBtn.addEventListener('click', ()=> exportTlWord());
+  panel.appendChild(wordBtn);
+
   const pdfBtn=document.createElement('button');
-  pdfBtn.className='btn small'; pdfBtn.style.cssText='width:100%;margin-bottom:8px;';
-  pdfBtn.textContent='🖨 导出 PDF（用浏览器打印，选"另存为 PDF"）';
+  pdfBtn.className='btn ghost small'; pdfBtn.style.cssText='width:100%;margin-bottom:8px;color:var(--ink-soft);';
+  pdfBtn.textContent='🖨 用浏览器打印导出（电脑上老方法）';
   pdfBtn.addEventListener('click', ()=>{ overlay.remove(); window.print(); });
   panel.appendChild(pdfBtn);
 
