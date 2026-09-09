@@ -4134,6 +4134,9 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     if(s==='me') renderMe();
   }
   $('msTabBar').querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+    if(document.getElementById('screen-profile').classList.contains('active')){
+      showScreen('screen-routelist'); // 关闭个人信息覆盖层，让底部导航随时可切换
+    }
     if(b.dataset.s==='me'){ const gb=document.getElementById('goProfileBtn'); if(gb) gb.click(); return; }
     goScreen(b.dataset.s);
   }));
