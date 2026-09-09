@@ -4016,7 +4016,7 @@ function buildEntriesFromRouteData(data){
 
 async function showTravelogueListFor(route){
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:'+(document.body.classList.contains('mobile-on')?9999:90)+';display:flex;align-items:center;justify-content:center;padding:20px;';
   const panel=document.createElement('div');
   panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:400px;box-shadow:0 10px 34px rgba(0,0,0,.3);max-height:80vh;overflow-y:auto;';
   panel.innerHTML = '<div style="font-size:16px;font-weight:700;margin-bottom:2px;">《'+escapeHtmlFull(route.name||'未命名路书')+'》的游记</div>'
@@ -4202,7 +4202,7 @@ function buildTravelogueListCard(tl){
 /* "新建游记"：先让用户选一条要关联的路书，选完照原来的快照逻辑走 */
 async function showRoutePickerForNewTravelogue(){
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:'+(document.body.classList.contains('mobile-on')?9999:90)+';display:flex;align-items:center;justify-content:center;padding:20px;';
   const panel=document.createElement('div');
   panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:400px;box-shadow:0 10px 34px rgba(0,0,0,.3);max-height:80vh;overflow-y:auto;';
   panel.innerHTML = '<div style="font-size:16px;font-weight:700;margin-bottom:2px;">新建游记</div>'
@@ -4518,7 +4518,7 @@ function showTlExportPanel(){
   included.forEach(e=> (e.photos||[]).forEach(p=> allPhotos.push(p)));
 
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:95;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:'+(document.body.classList.contains('mobile-on')?9999:95)+';display:flex;align-items:center;justify-content:center;padding:20px;';
   const panel=document.createElement('div');
   panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:460px;box-shadow:0 10px 34px rgba(0,0,0,.3);max-height:86vh;overflow-y:auto;';
   panel.innerHTML='<div style="font-size:16px;font-weight:700;margin-bottom:14px;">导出游记</div>';
@@ -5018,14 +5018,15 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     $('msListSub').textContent = rs.length ? (rs.length + ' 条路书 · 按住 ≡ 拖动排序') : '还没有路书，点右上角新建';
     $('msListBody').innerHTML = rs.length ? rs.map(function(r, idx){
       const n = (r.data && r.data.stops && r.data.stops.length) || 0;
-      return '<div class="ms-card" data-idx="'+idx+'" data-id="'+esc(r.id)+'" style="display:flex;align-items:center;gap:10px;touch-action:none">'
+      return '<div class="ms-card" data-idx="'+idx+'" data-id="'+esc(r.id)+'" style="display:flex;align-items:center;gap:6px;touch-action:none">'
         + '<div data-drag="'+idx+'" style="flex:0 0 auto;font-size:18px;color:#B4BDB4;padding:6px;cursor:grab;touch-action:none">⠿</div>'
         + '<div data-open="'+esc(r.id)+'" data-name="'+esc(r.name||'未命名')+'" style="flex:1;min-width:0;display:flex;align-items:center;gap:11px">'
         + '<div style="flex:1;min-width:0">'
-        + '<div style="font-size:16px;font-weight:700">'+esc(r.name||'未命名路书')+'</div>'
+        + '<div style="font-size:16px;font-weight:700">'+esc(r.name||'未命名路书')+(r.is_public?'<span class="plaza-public-badge">已发布</span>':'')+'</div>'
         + '<div class="ms-sub">'+n+' 个点位'+(r.updated_at? ' · 更新于 '+String(r.updated_at).slice(0,10):'')+(r.share_token? ' · 已分享':'')+'</div>'
         + '</div><div style="color:#B4BDB4">›</div></div>'
         + (r.share_token? '<button data-revoke="'+esc(r.id)+'" style="flex:0 0 auto;border:1px solid #E7D4CE;background:#fff;color:#B94A3C;border-radius:999px;padding:6px 10px;font-size:11.5px;font-weight:600">撤回分享</button>' : '')
+        + '<button data-more="'+idx+'" style="flex:0 0 auto;border:none;background:none;color:#8A968F;font-size:21px;padding:2px 6px;line-height:1;">⋯</button>'
         + '</div>';
     }).join('') : ('<div class="ms-card" style="text-align:center;color:#8A968F">还没有路书<br>点右上角「＋ 新建」开始'
       + (window.__rbDebug ? '<div style="margin-top:14px;font-size:10px;color:#B4BDB4;word-break:break-all">'+esc(JSON.stringify(window.__rbDebug))+'</div>' : '')
@@ -5047,6 +5048,13 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
           toast('已撤回分享');
           if(window.loadRouteList) await loadRouteList();
         }catch(err){ toast('撤回失败：'+(err.message||'')); }
+      });
+    });
+    $('msListBody').querySelectorAll('[data-more]').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const r = rs[+el.dataset.more];
+        if(r) openRouteMenuSheet(r);
       });
     });
     $('msListBody').querySelectorAll('[data-drag]').forEach(handle=>{
@@ -5088,6 +5096,45 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       handle.addEventListener('pointercancel', ()=>{
         if(dragEl){ dragEl.style.position=''; dragEl.style.zIndex=''; dragEl.style.boxShadow=''; dragEl.style.transform=''; }
         dragIdx=null; dragEl=null;
+      });
+    });
+  }
+  function openRouteMenuSheet(route){
+    $('msSheetPane').innerHTML = '<div class="ms-grab"></div>'
+      + '<div style="font-size:15.5px;font-weight:700;margin-bottom:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(route.name||'未命名路书')+'</div>'
+      + '<button class="ms-btn ghost" data-rm="rename" style="width:100%;margin-bottom:8px;">✎ 重命名</button>'
+      + '<button class="ms-btn ghost" data-rm="journal" style="width:100%;margin-bottom:8px;">📝 这条路书的游记</button>'
+      + '<button class="ms-btn ghost" data-rm="share" style="width:100%;margin-bottom:8px;">↗ 分享 / 发布到广场</button>'
+      + '<button class="ms-btn ghost" data-rm="delete" style="width:100%;color:#B94A3C;border-color:#E7D4CE;">🗑 删除这条路书</button>';
+    $('msSheet').classList.add('on');
+    const pane = $('msSheetPane');
+    pane.querySelector('[data-rm="rename"]').addEventListener('click', ()=>{
+      closeSheet();
+      const input = prompt('给这条路书起个新名字', route.name||'');
+      if(input==null) return;
+      const name = input.trim() || '未命名路书';
+      cbDb.from('roadbook').update({ name, updated_at:new Date().toISOString() }).eq('id', route.id).eq('user_id', getCurrentUid()).then(({error})=>{
+        if(error){ toast('改名失败：'+error.message); return; }
+        route.name = name;
+        toast('已改名');
+        renderList();
+      });
+    });
+    pane.querySelector('[data-rm="journal"]').addEventListener('click', ()=>{
+      closeSheet();
+      if(typeof showTravelogueListFor==='function') showTravelogueListFor(route);
+    });
+    pane.querySelector('[data-rm="share"]').addEventListener('click', ()=>{
+      closeSheet();
+      if(typeof shareRoute==='function') shareRoute(route, document.createElement('button'));
+    });
+    pane.querySelector('[data-rm="delete"]').addEventListener('click', ()=>{
+      closeSheet();
+      if(!confirm('删除「'+(route.name||'未命名路书')+'」？删除后无法恢复。')) return;
+      cbDb.from('roadbook').delete().eq('id', route.id).eq('user_id', getCurrentUid()).then(({error})=>{
+        if(error){ toast('删除失败：'+error.message); return; }
+        toast('已删除「'+(route.name||'未命名路书')+'」');
+        if(window.loadRouteList) loadRouteList();
       });
     });
   }
@@ -5525,13 +5572,11 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         + '<button class="ms-btn" id="jhNewForCurrent" style="width:100%;margin-top:10px;">＋ 为这条路书新建游记</button></div>';
     }
     html += '<div class="ms-card" id="jhAllEntry" style="cursor:pointer"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">我的游记（全部）</div><div class="ms-sub" id="jhAllSub">汇总所有路书下的游记</div></div><div style="color:#B4BDB4">›</div></div></div>';
-    html += '<button class="ms-btn ghost" id="jhNewAny" style="width:100%;margin-bottom:11px;">＋ 新建游记</button>';
-    html += '<div class="ms-card" id="jhPlazaEntry" style="cursor:pointer"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">广场上的游记</div><div class="ms-sub">看看别人写的路上故事，或者存一份灵感回来</div></div><div style="color:#B4BDB4">›</div></div></div>';
+    html += '<button class="ms-btn ghost" id="jhNewAny" style="width:100%;">＋ 新建游记</button>';
     body.innerHTML = html;
 
     $('jhAllEntry').addEventListener('click', ()=> $('goTravelogueListBtn').click());
     $('jhNewAny').addEventListener('click', ()=> { if(typeof showRoutePickerForNewTravelogue==='function') showRoutePickerForNewTravelogue(); });
-    $('jhPlazaEntry').addEventListener('click', ()=>{ mPlazaTab='journals'; goScreen('plaza'); });
     const curBtn = $('jhNewForCurrent');
     if(curBtn) curBtn.addEventListener('click', ()=>{
       const planName = ($('msPlanName') && $('msPlanName').textContent) || '未命名路书';
