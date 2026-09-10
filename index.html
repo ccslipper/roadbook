@@ -962,7 +962,7 @@ function closeColorPopover(){
 function pickColor(currentHex, onPick){
   closeColorPopover();
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.35);z-index:80;display:flex;align-items:center;justify-content:center;';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.35);z-index:'+(document.body.classList.contains('mobile-on')?9999:80)+';display:flex;align-items:center;justify-content:center;';
   const panel=document.createElement('div');
   panel.style.cssText='background:#fff;border-radius:12px;padding:16px;width:264px;box-shadow:0 10px 30px rgba(0,0,0,.28);';
   const title=document.createElement('div');
@@ -1324,6 +1324,33 @@ function loadAMapScript(){
     showConnError('高德脚本加载失败：请检查 Key 是否正确；若是在 Claude 对话预览框里打开的，请把文件下载后用浏览器直接打开再试。');
   };
   document.head.appendChild(script);
+}
+
+/* 在还没打开具体某条路书之前（比如新建路书弹窗里的"文字导入"），提前把
+   高德脚本和地图/搜索服务连好，用的是共享 Key（不依赖某条路书自己的 apiKey），
+   这样文字导入的定位不用等用户先手动连接地图。*/
+let amapReadyPromise = null;
+function ensureAmapReady(){
+  if(connected) return Promise.resolve(true);
+  if(amapReadyPromise) return amapReadyPromise;
+  amapReadyPromise = new Promise((resolve)=>{
+    if(window.AMap){ if(!connected) initMap(); resolve(true); return; }
+    if(document.getElementById('amap-script')){
+      const check=setInterval(()=>{
+        if(window.AMap){ clearInterval(check); if(!connected) initMap(); resolve(true); }
+      }, 300);
+      setTimeout(()=>{ clearInterval(check); resolve(!!window.AMap); }, 10000);
+      return;
+    }
+    if(SHARED_AMAP_SECCODE) window._AMapSecurityConfig = { securityJsCode: SHARED_AMAP_SECCODE };
+    const s=document.createElement('script');
+    s.id='amap-script';
+    s.src=`https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(SHARED_AMAP_KEY)}&plugin=AMap.Driving,AMap.Geocoder,AMap.PlaceSearch`;
+    s.onload=()=>{ if(window.AMap) initMap(); resolve(!!window.AMap); };
+    s.onerror=()=>resolve(false);
+    document.head.appendChild(s);
+  });
+  return amapReadyPromise;
 }
 
 let satelliteLayer=null, roadNetLayer=null;
@@ -4047,7 +4074,18 @@ function getCurrentUid(){
   return scanLocalStorageForSub();
 }
 
-document.getElementById('newRouteBtn').addEventListener('click', async ()=>{
+document.getElementById('newRouteBtn').addEventListener('click', ()=> showNewRouteChoice());
+
+async function createRouteRow(name, freshData){
+  const row = { name, data: freshData };
+  const uid = getCurrentUid();
+  if(uid) row.user_id = uid; // satisfy the RLS policy explicitly
+  const { data, error } = await cbDb.from('roadbook').insert(row).select().single();
+  if(error) throw error;
+  return data;
+}
+
+async function createBlankRoute(){
   const btn = document.getElementById('newRouteBtn');
   btn.disabled = true; btn.textContent = '创建中…';
   try{
@@ -4055,28 +4093,330 @@ document.getElementById('newRouteBtn').addEventListener('click', async ()=>{
       stops: [], segments: [], dayColors: {}, tagColors: {}, currentIndex: 0,
       apiKey: SHARED_AMAP_KEY, secCode: SHARED_AMAP_SECCODE
     };
-
-    const row = {
-      name: '新路书 ' + new Date().toLocaleDateString(),
-      data: freshData
-    };
-    const uid = getCurrentUid();
-    if(uid) row.user_id = uid; // satisfy the RLS policy explicitly
-
-    const { data, error } = await cbDb.from('roadbook').insert(row).select().single();
-    if(error) throw error;
+    const data = await createRouteRow('新路书 ' + new Date().toLocaleDateString(), freshData);
     openRoute(data.id, data.name);
   }catch(e){
     const msg = e.message||'';
     if(/row-level security/i.test(msg)){
-      toast('创建失败：数据库拒绝了这行数据（当前用户ID：'+(getCurrentUid()||'取不到')+'）');
+      toast('创建失败：数据库拒绝了这行数据（当前用户ID：'+(getCurrentUid()||'取不到')+'），请退出重新登录试试');
     } else {
       toast('创建失败：'+msg);
     }
   }finally{
-    btn.disabled = false; btn.textContent = '＋ 新建线路';
+    btn.disabled = false; btn.textContent = '＋ 新建路书';
   }
-});
+}
+
+/* 新建路书：先问一句"空白开始"还是"粘贴文字自动生成"——不管走哪条路，
+   点开这个弹窗本身就顺手把地图服务连上（ensureAmapReady 是幂等的，
+   已连接就直接返回），后面无论是打开编辑页还是文字导入解析地点都不用再等。*/
+function showNewRouteChoice(){
+  ensureAmapReady();
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:'+(document.body.classList.contains('mobile-on')?9999:90)+';display:flex;align-items:center;justify-content:center;padding:20px;';
+  const panel=document.createElement('div');
+  panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:380px;box-shadow:0 10px 34px rgba(0,0,0,.3);';
+  panel.innerHTML='<div style="font-size:16px;font-weight:700;margin-bottom:14px;">新建路书</div>';
+  const blankBtn=document.createElement('button');
+  blankBtn.className='btn small'; blankBtn.style.cssText='width:100%;margin-bottom:8px;';
+  blankBtn.textContent='空白路书，自己一个个加地点';
+  blankBtn.addEventListener('click', ()=>{ overlay.remove(); createBlankRoute(); });
+  const textBtn=document.createElement('button');
+  textBtn.className='btn ghost small'; textBtn.style.cssText='width:100%;';
+  textBtn.textContent='📋 粘贴文字行程，自动生成';
+  textBtn.addEventListener('click', ()=>{ overlay.remove(); showTextImportDialog(); });
+  const cancelBtn=document.createElement('button');
+  cancelBtn.className='btn ghost small'; cancelBtn.style.cssText='width:100%;margin-top:8px;color:var(--ink-soft);';
+  cancelBtn.textContent='取消';
+  cancelBtn.addEventListener('click', ()=> overlay.remove());
+  panel.appendChild(blankBtn); panel.appendChild(textBtn); panel.appendChild(cancelBtn);
+  overlay.appendChild(panel);
+  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+/* ---------- 文字行程导入 ----------
+   把一段随手写的行程文字，解析成一串地点名 + 大致的天数分组，
+   然后依次搜索定位、按顺路顺序重排，最后一次性建成一条路书。 */
+function parseItineraryText(text){
+  const rawLines = text.split(/\n/).map(l=>l.trim()).filter(Boolean);
+  const items = []; // {name, day, note, tag}
+  let curDay = 1;
+  let lastStop = null; // 非标题行如果不像地点、也没提取出地址，就整段挂到这个点的备注上
+
+  const cnNum = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+  // 唯一会拆出"多个地点"的地方：天数标题本身，比如"第2天：西昌 — 泸沽湖"
+  const dayHeaderRe = /^(第\s*([0-9一二三四五六七八九十]+)\s*天|day\s*([0-9]+)|D([0-9]+))\s*[:：]?\s*(.*)$/i;
+  // 标题后面/普通行里，只要出现这些词，就判定是行程说明而不是地名——sooner drop than misparse
+  const descriptiveWordRe = /(约|公里|km|小时|车程|门票|元|￥|¥|深度|游玩|环湖|一日游|打卡|漫步|欣赏|体验|品尝|抵达|游览|畅游|返程|高速|收费站|风光|古城|文化|路段)/;
+  const labelLineRe = /^(行程|亮点|景点|美食|住宿|门票|贴士|tips?|备注|交通|路线|游玩|注意事项|注意|提示|花费|预算)\s*[:：]\s*(.*)$/i;
+  const NAME = '[\\u4e00-\\u9fa5A-Za-z0-9·]{2,10}'; // 一个地名大概的形状：2-10个汉字/字母/数字
+
+  // "经A到B""路过A""停留A""住/住在A""在A吃""在A玩"这类句式——只取里面的地名，
+  // 动词、介词一律不要；带标签的（住/吃/玩）顺手把标签也定好，省得再手动改
+  const naturalPatterns = [
+    { re:new RegExp(`经\\s*(${NAME})\\s*(?:到|至)\\s*(${NAME})`,'g'), tag:null, groups:[1,2] },
+    { re:new RegExp(`(?:入住|住在|住宿于|住)\\s*(${NAME})`,'g'), tag:'住宿', groups:[1] },
+    { re:new RegExp(`在\\s*(${NAME})\\s*(?:吃|品尝|尝)`,'g'), tag:'美食', groups:[1] },
+    { re:new RegExp(`在\\s*(${NAME})\\s*(?:玩|游玩|游览|逛)`,'g'), tag:'景点', groups:[1] },
+    { re:new RegExp(`路过\\s*(${NAME})`,'g'), tag:null, groups:[1] },
+    { re:new RegExp(`(?:停留\\s*(${NAME})|在\\s*(${NAME})\\s*停留)`,'g'), tag:null, groups:[1,2] },
+    { re:new RegExp(`(?:从)?\\s*(${NAME})\\s*(?:出发|启程)`,'g'), tag:null, groups:[1] },
+    { re:new RegExp(`(?:前往|奔赴|直奔)\\s*(${NAME})`,'g'), tag:null, groups:[1] },
+    { re:new RegExp(`(?:返回|返程|回到)\\s*(${NAME})`,'g'), tag:null, groups:[1] },
+    { re:new RegExp(`到达?\\s*(${NAME})`,'g'), tag:null, groups:[1] }
+  ];
+  function extractNaturalPlaces(str){
+    str = str.replace(/[（(][^）)]*[）)]/g, ' ');
+    const used=[]; // 已经被前面模式吃掉的字符区间，避免同一段文字被算两次（比如"经A到B"里的"到"不会再单独触发"到达A"）
+    const overlaps=(s,e)=> used.some(u=> s<u[1] && e>u[0]);
+    const found=[];
+    naturalPatterns.forEach(p=>{
+      p.re.lastIndex=0;
+      let m;
+      while((m=p.re.exec(str))){
+        const s=m.index, e=m.index+m[0].length;
+        if(overlaps(s,e)) continue;
+        p.groups.forEach(gi=>{ if(m[gi]) found.push({ name:m[gi].trim(), tag:p.tag, pos:s }); });
+        used.push([s,e]);
+      }
+    });
+    return found.sort((a,b)=>a.pos-b.pos);
+  }
+
+  function stripBullet(line){
+    return line.replace(/^[\s　]*[\*\-•▪·]+\s*/, '').trim();
+  }
+  function cleanName(raw){
+    return raw.replace(/^[\d一二三四五六七八九十]+[\.、）)]\s*/,'').trim();
+  }
+  // 一行"像不像一个单纯的地名"：短、没有行程描述常见词、没有句号感叹号这种叙述性标点
+  function looksLikePlace(line){
+    if(!line || line.length>16) return false;
+    if(descriptiveWordRe.test(line)) return false;
+    if(/[。！？]/.test(line)) return false;
+    return true;
+  }
+  function splitDayRemainder(str){
+    // 天数标题后面的内容才允许按 "A — B — C" 拆成多个地点，别的地方一律不拆
+    str = str.replace(/[（(][^）)]*[）)]/g, ' ').replace(/\s+/g,' ').trim();
+    if(!str) return [];
+    const seps = /->|→|—+|–+|~+|、|,|，|;|；|\s到\s|\s至\s/;
+    return seps.test(str) ? str.split(seps).map(s=>s.trim()).filter(Boolean) : [str];
+  }
+  function pushStop(name, day, tag){
+    const cleaned = cleanName(name);
+    if(!cleaned) return;
+    if(lastStop && lastStop.name===cleaned) return; // 下一天开头常常重复写一遍昨天到达的地方，跳过
+    const stop = { name: cleaned, day, note:'', tag: tag||'' };
+    items.push(stop);
+    lastStop = stop;
+  }
+  function attachNote(text){
+    if(!text || !lastStop) return;
+    lastStop.note = lastStop.note ? (lastStop.note+' '+text) : text;
+  }
+
+  rawLines.forEach(rawLine=>{
+    const line = stripBullet(rawLine);
+    if(!line) return;
+
+    const dm = line.match(dayHeaderRe);
+    if(dm){
+      let d=null;
+      if(dm[2]) d = cnNum[dm[2]] || parseInt(dm[2]) || null;
+      if(dm[3]) d = parseInt(dm[3]);
+      if(dm[4]) d = parseInt(dm[4]);
+      if(d) curDay = d;
+      const remainder = dm[5].replace(/^[:：]\s*/,'').trim();
+      if(remainder){
+        // 先试"经A到B""住在A"这类带动词的句式（哪怕里面有逗号，也是叙述用的逗号，不是列表分隔符）；
+        // 没命中的话再看有没有单纯的分隔符（— → 、等），按"A到B到C"拆；
+        // 都没有再看像不像单纯地名，都不像（比如"泸沽湖深度游"）就整句当备注，不硬造地点名
+        const natural = extractNaturalPlaces(remainder);
+        if(natural.length){
+          natural.forEach(n=> pushStop(n.name, curDay, n.tag));
+        } else if(/->|→|—|–|、|,|，/.test(remainder)){
+          splitDayRemainder(remainder).forEach(name=> pushStop(name, curDay));
+        } else if(looksLikePlace(remainder)){
+          pushStop(remainder, curDay);
+        } else {
+          attachNote(remainder);
+        }
+      }
+      return;
+    }
+
+    // 不是天数标题：先试"经A到B""住在A""在A吃/玩"这类句式，命中就只留地名（顺手带上标签）
+    const natural = extractNaturalPlaces(line);
+    if(natural.length){
+      natural.forEach(n=> pushStop(n.name, curDay, n.tag));
+      return;
+    }
+
+    // 再看是不是"行程：""亮点："这类小标签，是的话整句当备注，不当地点
+    const label = line.match(labelLineRe);
+    if(label){ attachNote(label[2] || line); return; }
+
+    // 普通行：像地点就当一个地点，不像就整行当备注——不再逐字符猜、不再按逗号拆多个
+    if(looksLikePlace(line)) pushStop(line, curDay);
+    else attachNote(line);
+  });
+
+  return items;
+}
+
+function showTextImportDialog(opts){
+  opts = opts || {};
+  const appendMode = !!opts.appendToCurrent;
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,25,24,.4);z-index:'+(document.body.classList.contains('mobile-on')?9999:90)+';display:flex;align-items:center;justify-content:center;padding:20px;';
+  const panel=document.createElement('div');
+  panel.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:480px;box-shadow:0 10px 34px rgba(0,0,0,.3);max-height:86vh;overflow-y:auto;';
+  panel.innerHTML = '<div style="font-size:16px;font-weight:700;margin-bottom:6px;">粘贴文字行程</div>'
+    + '<div style="font-size:12px;color:#5B6B67;margin-bottom:12px;line-height:1.6;">'
+    + '一行一个地点，或者用"→""—"、逗号分隔多个；可以用"第1天""Day2""D3"这样的写法分天，不写就都算第 1 天。"行程：""亮点："这类说明文字会自动识别成备注，不会被当成地点。<br>'
+    + (appendMode ? '解析出来的点会加到当前这条路书的末尾，天数是相对现有天数往后接的。<br>' : '')
+    + '例如：<br>第1天：成都 → 汶川 → 若尔盖<br>第2天：郎木寺，唐克，花湖</div>';
+  const ta=document.createElement('textarea');
+  ta.placeholder='第1天：成都 → 汶川\n第2天：若尔盖 → 花湖 → 郎木寺';
+  ta.style.cssText='width:100%;min-height:160px;border:1px solid #DDE2D8;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;background:#FBFBF9;';
+  panel.appendChild(ta);
+
+  let nameField=null;
+  if(!appendMode){
+    nameField=document.createElement('input');
+    nameField.type='text'; nameField.placeholder='路书名称（选填）';
+    nameField.style.cssText='width:100%;margin-top:10px;border:1px solid #DDE2D8;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;';
+    panel.appendChild(nameField);
+  }
+
+  const status=document.createElement('div');
+  status.style.cssText='font-size:12px;color:#5B6B67;margin-top:10px;min-height:18px;';
+  panel.appendChild(status);
+
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:8px;margin-top:6px;';
+  const goBtn=document.createElement('button');
+  goBtn.className='btn small'; goBtn.style.flex='1';
+  goBtn.textContent=appendMode? '加到这条路书' : '生成路书';
+  const cancelBtn=document.createElement('button');
+  cancelBtn.className='btn ghost small';
+  cancelBtn.textContent='取消';
+  cancelBtn.addEventListener('click', ()=> overlay.remove());
+  row.appendChild(goBtn); row.appendChild(cancelBtn);
+  panel.appendChild(row);
+
+  goBtn.addEventListener('click', async ()=>{
+    const text = ta.value.trim();
+    if(!text){ status.style.color='#B94A3C'; status.textContent='先粘贴点内容'; return; }
+    const items = parseItineraryText(text);
+    if(!items.length){ status.style.color='#B94A3C'; status.textContent='没解析出地点，检查一下格式'; return; }
+    if(!connected){
+      status.style.color='#5B6B67'; status.textContent='正在连接高德地图…';
+      const ok = await ensureAmapReady();
+      if(!ok){ status.style.color='#B94A3C'; status.textContent='连接失败，检查网络后重试'; return; }
+    }
+
+    // 追加模式下，解析出来的"第1天"要接在当前路书已有的最后一天之后，不是从头覆盖
+    let dayOffset = 0;
+    if(appendMode && state && state.stops && state.stops.length){
+      dayOffset = Math.max.apply(null, state.stops.map(s=>s.day||1)) ; // 最后一天再往后接
+    }
+
+    goBtn.disabled=true; cancelBtn.disabled=true;
+    const stops = items.map((it,i)=>({
+      id:'s'+Date.now()+i+Math.random().toString(36).slice(2,4),
+      day: it.day + dayOffset, name: it.name, tag: it.tag||'', note: it.note||'', photo:'', color:'',
+      lng:null, lat:null, geocodeFailed:false
+    }));
+
+    // 依次定位，一边搜一边报进度，避免看起来像卡住
+    for(let i=0;i<stops.length;i++){
+      status.style.color='#5B6B67';
+      status.textContent = `正在定位 ${i+1}/${stops.length}：${stops[i].name}…`;
+      await geocodeWithRetry(stops[i], 2);
+    }
+
+    // 按天分组，组内按"离上一个定位好的点最近"重排，让路线顺路，不是完全打乱成一条线，
+    // 而是保留用户写的分天结构，只在天内做顺路优化
+    const byDay = {};
+    stops.forEach(s=>{ (byDay[s.day]=byDay[s.day]||[]).push(s); });
+    const days = Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+    let ordered = [];
+    let anchorLng=null, anchorLat=null;
+    if(appendMode){
+      const lastExisting = [...state.stops].reverse().find(s=>s.lng!=null && s.lat!=null);
+      if(lastExisting){ anchorLng=lastExisting.lng; anchorLat=lastExisting.lat; }
+    }
+    days.forEach(d=>{
+      let group = byDay[d];
+      const positioned = group.filter(s=>s.lng!=null && s.lat!=null);
+      const unpositioned = group.filter(s=>s.lng==null || s.lat==null);
+      let sortedGroup;
+      if(anchorLng!=null && positioned.length){
+        sortedGroup = orderByNearestNeighbor(positioned, anchorLng, anchorLat, s=>[s.lng,s.lat]).concat(unpositioned);
+      } else {
+        sortedGroup = positioned.concat(unpositioned); // 第一天没有锚点，保持原始顺序
+      }
+      ordered = ordered.concat(sortedGroup);
+      const lastPositioned = [...sortedGroup].reverse().find(s=>s.lng!=null && s.lat!=null);
+      if(lastPositioned){ anchorLng=lastPositioned.lng; anchorLat=lastPositioned.lat; }
+    });
+
+    const failedCount = ordered.filter(s=>s.geocodeFailed).length;
+
+    if(appendMode){
+      try{
+        state.stops = state.stops.concat(ordered);
+        rebuildSegmentsSkeleton();
+        markDirty();
+        saveState();
+        overlay.remove();
+        renderAll();
+        if(typeof window.rbMobileRefresh==='function') window.rbMobileRefresh();
+        try{ await geocodeAndRoute(); }catch(e){}
+        renderAll();
+        if(typeof window.rbMobileRefresh==='function') window.rbMobileRefresh();
+        if(failedCount){
+          toast(`已加进来，有 ${failedCount} 个地点没能自动定位，打开详情可以手动搜索选点`, {duration:6000});
+        } else {
+          toast('已加进来，路线已自动补全');
+        }
+      }catch(e){
+        status.style.color='#B94A3C';
+        status.textContent = '添加失败：'+(e.message||'');
+        goBtn.disabled=false; cancelBtn.disabled=false;
+      }
+      return;
+    }
+
+    status.textContent = '正在创建路书…';
+    try{
+      const freshData = {
+        stops: ordered, segments: [], dayColors: {}, tagColors: {}, currentIndex: 0,
+        apiKey: SHARED_AMAP_KEY, secCode: SHARED_AMAP_SECCODE
+      };
+      const name = (nameField && nameField.value.trim()) || ('新路书 ' + new Date().toLocaleDateString());
+      const data = await createRouteRow(name, freshData);
+      overlay.remove();
+      openRoute(data.id, data.name);
+      if(failedCount){
+        toast(`已生成，有 ${failedCount} 个地点没能自动定位，打开后可以在详情里手动搜索选点`, {duration:6000});
+      } else {
+        toast('已按顺路顺序生成，点"重新规划"看真实路线');
+      }
+    }catch(e){
+      status.style.color='#B94A3C';
+      status.textContent = '创建失败：'+(e.message||'');
+      goBtn.disabled=false; cancelBtn.disabled=false;
+    }
+  });
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+  ta.focus();
+}
 
 /* ---------- 路书分享 ----------
    分享出去的是一个带 token 的链接。对方打开后，服务端函数按 token 精确
@@ -4979,6 +5319,30 @@ async function exportTlWord(){
   }
 }
 
+/* 导出前预览：把 buildTlDocElement() 的内容直接铺满一个全屏浮层，
+   跟最终 PDF/Word 看到的内容一致（同一份构建逻辑），手机/电脑都能用 */
+function showTlPreviewModal(){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:#EAEAE2;z-index:'+(document.body.classList.contains('mobile-on')?9999:96)+';display:flex;flex-direction:column;';
+  const head=document.createElement('div');
+  head.style.cssText='flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;background:var(--surface);border-bottom:1px solid var(--line);';
+  const closeBtn=document.createElement('button');
+  closeBtn.className='btn ghost small'; closeBtn.textContent='‹ 关闭预览';
+  closeBtn.addEventListener('click', ()=> overlay.remove());
+  const title=document.createElement('div');
+  title.style.cssText='flex:1;font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+  title.textContent = '预览：'+(currentTravelogue.title||'未命名游记');
+  head.appendChild(closeBtn); head.appendChild(title);
+  overlay.appendChild(head);
+
+  const body=document.createElement('div');
+  body.style.cssText='flex:1 1 auto;overflow-y:auto;padding:22px 16px 40px;display:flex;justify-content:center;';
+  body.appendChild(buildTlDocElement());
+  overlay.appendChild(body);
+
+  document.body.appendChild(overlay);
+}
+
 function showTlExportPanel(){
   const included = currentTravelogue.data.entries.filter(e=>e.included);
   const allPhotos = [];
@@ -5013,6 +5377,12 @@ function showTlExportPanel(){
     }
     plazaCb.disabled=false;
   });
+
+  const previewBtn=document.createElement('button');
+  previewBtn.className='btn ghost small'; previewBtn.style.cssText='width:100%;margin-bottom:8px;';
+  previewBtn.textContent='👀 预览（确认内容再导出）';
+  previewBtn.addEventListener('click', ()=> showTlPreviewModal());
+  panel.appendChild(previewBtn);
 
   const pdfDirectBtn=document.createElement('button');
   pdfDirectBtn.className='btn small'; pdfDirectBtn.style.cssText='width:100%;margin-bottom:8px;';
@@ -5379,7 +5749,6 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       <div class="ms-tabs" id="msViewTabs">
         <button data-v="timeline" class="on">时间轴</button>
         <button data-v="map">地图</button>
-        <button data-v="cards">卡片</button>
       </div>
       <div class="ms-chips" id="msTagChips"></div>
     </div>
@@ -5481,7 +5850,9 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     if(overlayIds.some(id=>{ const el=document.getElementById(id); return el && el.classList.contains('active'); })){
       showScreen('screen-routelist'); // 关闭浮层（个人信息 / 游记编辑），让底部导航随时可切换
     }
-    if(b.dataset.s==='me'){ const gb=document.getElementById('goProfileBtn'); if(gb) gb.click(); return; }
+    // "我的" tab 落地页是跟其它 tab 一样的 ms-me（标头统一、没有返回按钮），
+    // 点里面的"个人信息"才会钻进 screen-profile 详情页（那里保留自己的返回，
+    // 因为那才是真正的下一级页面，不是 tab 的落地页）
     goScreen(b.dataset.s);
   }));
 
@@ -5671,15 +6042,17 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       $('msRelayCur').textContent = st[ci] ? '当前：'+st[ci].name : '';
       $('msRelayNext').textContent = st[ci+1] ? st[ci+1].name : '已经是最后一站';
     }
-    if(mView==='timeline') renderTimeline();
-    else if(mView==='map') renderMap();
-    else renderCards();
+    if(mView==='map') renderMap();
+    else renderTimeline();
   }
 
   function renderTimeline(){
     const st = (state && state.stops) || [];
     if(!st.length){
-      $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">这条路书还没有点位。点下面每一天的「＋ 加一个点」，或切到电脑版用地图批量加。</div>';
+      $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">这条路书还没有点位，先加第一个点：'
+        + '<button class="ms-btn" data-insert="-1" style="width:100%;margin-top:12px;">＋ 加一个点</button>'
+        + '<button class="ms-btn ghost" data-textimport="1" style="width:100%;margin-top:8px;">📋 粘贴文字行程，自动生成</button></div>';
+      bindPlanBody();
       return;
     }
     const vis = visibleStops();
@@ -5709,7 +6082,8 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
           + '<div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.name)
           + (s.tag? ' <span style="font-size:10.5px;font-weight:600;color:'+c+';background:'+c+'18;border-radius:5px;padding:2px 6px">'+esc(s.tag)+'</span>':'')
           + '</div>'+(s.note? '<div class="ms-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.note)+'</div>':'')
-          + '</div><div style="color:#B4BDB4">›</div></div></div>';
+          + '</div><button data-nav="'+i+'" title="导航去下一站" style="flex:0 0 auto;border:none;background:none;color:#8A968F;font-size:17px;padding:4px 6px;cursor:pointer;line-height:1">🧭</button>'
+          + '<div style="color:#B4BDB4">›</div></div></div>';
         if(st[i+1] && !mTag){
           html += '<div class="ms-row" style="margin:2px 0 2px 26px;padding:6px 10px 6px 0;gap:8px">'
             + '<div style="width:2px;height:22px;background:#D3DBCB;border-radius:2px;flex:0 0 auto"></div>'
@@ -5723,25 +6097,6 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       html += '<div data-insert="'+(function(){ let idx=-1; st.forEach((s,i)=>{ if(s.day===day) idx=i; }); return idx; })()+'" style="margin-left:26px;padding:8px 10px;font-size:12.5px;color:#8A968F">＋ 在这一天最后加一个点</div></div>';
     });
     $('msPlanBody').innerHTML = html;
-    bindPlanBody();
-  }
-
-  function renderCards(){
-    const st = (state && state.stops) || [];
-    $('msPlanBody').innerHTML = visibleStops().map(function(x){
-      const s = x.s, i = x.i, c = stopColor(s), g = segAt(i);
-      return '<div class="ms-card" style="padding:0;overflow:hidden">'
-        + '<div style="height:92px;background:'+c+';display:flex;align-items:flex-end;padding:12px 14px;color:#fff">'
-        + '<div><div style="font-size:11px;opacity:.8">第 '+s.day+' 天 · 第 '+(i+1)+' 站</div>'
-        + '<div style="font-size:17px;font-weight:700;margin-top:3px">'+esc(s.name)+'</div></div></div>'
-        + '<div style="padding:12px 14px 14px"><div style="font-size:12.5px;color:#5B6B67;line-height:1.6">'+esc(s.note||'还没有备注，点详情写点什么')+'</div>'
-        + '<div class="ms-row" style="margin-top:12px"><div class="ms-sub" style="flex:1">'+(g&&g.km? '下一段 '+Math.round(g.km)+' km':'行程终点')+'</div>'
-        + (st[i+1]? '<button class="ms-pill" data-seg="'+i+'">沿途搜</button>':'')
-        + '<button class="ms-pill" data-nav="'+i+'">导航</button>'
-        + '<button class="ms-pill" data-stop="'+i+'">详情</button></div>'
-        + (!mTag? '<div style="text-align:center;margin-top:8px"><button data-insert="'+i+'" style="border:1px dashed #B4BDB4;background:none;color:#8A968F;border-radius:999px;padding:4px 12px;font-size:11.5px;cursor:pointer">＋ 在后面插入一个点</button></div>' : '')
-        + '</div></div>';
-    }).join('') || '<div class="ms-card" style="text-align:center;color:#8A968F">没有符合筛选的点位</div>';
     bindPlanBody();
   }
 
@@ -5786,6 +6141,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     body.querySelectorAll('[data-seg]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); openSegmentPanel(+el.dataset.seg); }));
     body.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); navFrom(+el.dataset.nav); }));
     body.querySelectorAll('[data-insert]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); insertStopAfter(+el.dataset.insert); }));
+    body.querySelectorAll('[data-textimport]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); if(typeof showTextImportDialog==='function') showTextImportDialog({ appendToCurrent:true }); }));
   }
 
   function navFrom(i){
@@ -5816,10 +6172,24 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     if(typeof markDirty==='function') markDirty();
     saveState();
     renderPlan();
-    autoLocateNewStop();
+    autoRecalcRoute();
   }
 
-  async function autoLocateNewStop(){
+  /* 加点/删点之后，自动把"没坐标的点"和"没算出来的路段"补齐——跟桌面版点
+     "重新规划"是同一套 geocodeAndRoute()，只处理还缺的那部分，很快。手机端
+     网络没那么稳，所以这里比桌面多做一件事：算完一轮如果还有没补上的，
+     自动再试几轮（间隔一下，别把接口打爆），直到补齐或者试够次数为止，
+     不用用户自己找按钮反复点。 */
+  function routeStillIncomplete(){
+    if(!state || !state.stops) return false;
+    const missingStop = state.stops.some(s=> s.lng==null);
+    const missingSeg = (state.segments||[]).some((seg,idx)=>{
+      const a = state.stops[idx], b = state.stops[idx+1];
+      return seg && !seg.path && a && a.lng!=null && b && b.lng!=null;
+    });
+    return missingStop || missingSeg;
+  }
+  async function autoRecalcRoute(){
     if(typeof geocodeAndRoute!=='function') return;
     if(typeof connected==='undefined' || !connected){
       if(typeof state!=='undefined' && state.apiKey && typeof loadAMapScript==='function' && !document.getElementById('amap-script')){
@@ -5832,12 +6202,19 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       }
     }
     if(typeof connected==='undefined' || !connected){
-      if(typeof toast==='function') toast('高德地图还没连上，坐标暂时是空的——网络恢复后重新打开这条路书会自动补上，也可以去电脑版点"重新规划"');
+      if(typeof toast==='function') toast('高德地图还没连上，路线暂时算不出来——网络恢复后重新打开这条路书会自动补上，也可以去电脑版点"重新规划"');
       return;
     }
-    if(typeof toast==='function') toast('正在自动定位新加的点…');
-    try{ await geocodeAndRoute(); }catch(e){}
-    renderPlan();
+    if(!routeStillIncomplete()) return;
+    if(typeof toast==='function') toast('正在自动补全路线…');
+    for(let attempt=0; attempt<4 && routeStillIncomplete(); attempt++){
+      try{ await geocodeAndRoute(); }catch(e){}
+      renderPlan();
+      if(routeStillIncomplete()) await new Promise(r=>setTimeout(r, 900));
+    }
+    if(routeStillIncomplete() && typeof toast==='function'){
+      toast('还有部分点位/路段没能自动算出来，可能是网络不稳定——稍后重新打开这条路书会继续补，也可以去电脑版点"重新规划"', {duration:6000});
+    }
   }
 
   function openSheet(i){
@@ -5851,6 +6228,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       + '<input class="ms-in" id="msName" style="border:none;border-bottom:1px solid #DDE2D8;border-radius:0;padding:10px 0;margin-top:10px;font-size:19px;font-weight:700;background:none" value="'+esc(s.name)+'">'
       + '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">'
       + TAGS.map(t=>'<button class="ms-pill'+(s.tag===t?' on':'')+'" data-tagset="'+t+'">'+t+'</button>').join('')+'</div>'
+      + '<div id="msColorSlot" style="margin-top:14px"></div>'
       + '<div class="ms-sub" style="margin-top:14px">备注 · 预订信息</div>'
       + '<textarea class="ms-in" id="msNote" style="min-height:76px;margin-top:6px;line-height:1.6;resize:none" placeholder="房型、订单号、到店时间、门票预约…">'+esc(s.note||'')+'</textarea>'
       + '<div style="display:flex;gap:9px;margin-top:16px">'
@@ -5867,6 +6245,32 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       s.tag = (s.tag===b.dataset.tagset) ? '' : b.dataset.tagset;
       saveState(); openSheet(i); renderPlan();
     }));
+    const colorSlot = pane.querySelector('#msColorSlot');
+    if(colorSlot && typeof colorField==='function'){
+      colorSlot.appendChild(colorField(stopColor(s), !!s.color, (hex)=>{
+        s.color=hex; saveState(); renderPlan(); openSheet(i);
+      }, ()=>{
+        s.color=''; saveState(); renderPlan(); openSheet(i);
+      }, {
+        overrideText:'这个点已单独设置颜色',
+        defaultText:'这个点跟随标签/天数的颜色，点色块可单独设置',
+        resetText:'取消单独设置'
+      }));
+      const tagTrim = (s.tag||'').trim();
+      if(tagTrim){
+        colorSlot.appendChild(colorField(
+          state.tagColors[tagTrim] || stopColor(s),
+          !!state.tagColors[tagTrim],
+          (hex)=>{ state.tagColors[tagTrim]=hex; saveState(); renderPlan(); openSheet(i); },
+          ()=>{ delete state.tagColors[tagTrim]; saveState(); renderPlan(); openSheet(i); },
+          {
+            overrideText:'标签「'+tagTrim+'」已统一设置颜色（同标签的点都会跟着变）',
+            defaultText:'给标签「'+tagTrim+'」设一个统一颜色（比如所有"住宿"或"补能"的点用同一色）',
+            resetText:'取消这个标签的统一颜色'
+          }
+        ));
+      }
+    }
     pane.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', closeSheet));
     const go = pane.querySelector('[data-go]');
     if(go) go.addEventListener('click', ()=>navFrom(i));
@@ -5881,7 +6285,9 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       if(!confirm('删除「'+s.name+'」？')) return;
       state.stops.splice(i,1);
       if(typeof rebuildSegmentsSkeleton==='function') rebuildSegmentsSkeleton();
+      if(typeof markDirty==='function') markDirty();
       saveState(); closeSheet(); renderPlan();
+      autoRecalcRoute();
     });
   }
   function closeSheet(){ $('msSheet').classList.remove('on'); }
@@ -6123,10 +6529,42 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         if(error) throw error;
         const wrap = $('jhCurList');
         if(!wrap) return;
-        wrap.innerHTML = (data && data.length) ? data.map(tl=>'<div data-tl="'+esc(tl.id)+'" style="padding:8px 0;border-top:1px solid #EEF0EA;cursor:pointer;font-size:13.5px;font-weight:600;color:#1B2A2E;">'+esc(tl.title||'未命名游记')+'</div>').join('')
+        wrap.innerHTML = (data && data.length) ? data.map(tl=>'<div class="ms-row" data-tl="'+esc(tl.id)+'" style="padding:8px 0;border-top:1px solid #EEF0EA;">'
+          + '<div style="flex:1;min-width:0;cursor:pointer;font-size:13.5px;font-weight:600;color:#1B2A2E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tl-open="'+esc(tl.id)+'">'+esc(tl.title||'未命名游记')+'</div>'
+          + '<button data-tl-rename="'+esc(tl.id)+'" style="flex:0 0 auto;border:none;background:none;color:#8A968F;font-size:15px;padding:4px 6px">✎</button>'
+          + '<button data-tl-del="'+esc(tl.id)+'" style="flex:0 0 auto;border:none;background:none;color:#B94A3C;font-size:15px;padding:4px 6px">✕</button>'
+          + '</div>').join('')
           : '这条路书还没有游记';
-        wrap.querySelectorAll('[data-tl]').forEach(el=> el.addEventListener('click', ()=>{
-          if(typeof openTravelogueEditor==='function') openTravelogueEditor(el.dataset.tl);
+        wrap.querySelectorAll('[data-tl-open]').forEach(el=> el.addEventListener('click', ()=>{
+          if(typeof openTravelogueEditor==='function') openTravelogueEditor(el.dataset.tlOpen);
+        }));
+        wrap.querySelectorAll('[data-tl-rename]').forEach(el=> el.addEventListener('click', async (e)=>{
+          e.stopPropagation();
+          const id = el.dataset.tlRename;
+          const tl = (data||[]).find(x=>x.id===id);
+          const newTitle = prompt('改个名字：', (tl&&tl.title)||'');
+          if(newTitle==null) return;
+          const trimmed = newTitle.trim() || '未命名游记';
+          try{
+            const uid2 = getCurrentUid();
+            await cbDb.from('travelogues').update({ title:trimmed, updated_at:new Date().toISOString() }).eq('id', id).eq('user_id', uid2);
+            if(tl) tl.title = trimmed;
+            if(typeof toast==='function') toast('已改名');
+            renderJournalHome(body);
+          }catch(err){ if(typeof toast==='function') toast('改名失败：'+(err.message||'')); }
+        }));
+        wrap.querySelectorAll('[data-tl-del]').forEach(el=> el.addEventListener('click', async (e)=>{
+          e.stopPropagation();
+          const id = el.dataset.tlDel;
+          const tl = (data||[]).find(x=>x.id===id);
+          if(!confirm('删除「'+((tl&&tl.title)||'未命名游记')+'」？')) return;
+          try{
+            const uid2 = getCurrentUid();
+            const { error:delErr } = await cbDb.from('travelogues').delete().eq('id', id).eq('user_id', uid2);
+            if(delErr) throw delErr;
+            if(typeof toast==='function') toast('已删除');
+            renderJournalHome(body);
+          }catch(err){ if(typeof toast==='function') toast('删除失败：'+(err.message||'')); }
         }));
       }catch(e){
         const wrap = $('jhCurList'); if(wrap) wrap.textContent='加载失败';
