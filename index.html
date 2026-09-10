@@ -1116,11 +1116,14 @@ let state = {
 function colorFor(day){
   return state.dayColors[day] || DAY_COLORS_HEX[Math.min(day,7)] || '#33454A';
 }
-// priority: point's own color > its tag's color > its day's default color
+// 标签的初始/默认颜色——没在 state.tagColors 里单独设置过的话，有标签的点就用这套颜色，
+// 不再直接落到当天颜色；只有完全没选标签的点才跟随第 N 天的颜色
+const DEFAULT_TAG_COLORS = {'出发点':'#33454A','住宿':'#1D6FA5','美食':'#D8703A','景点':'#5B7A46','补能':'#B98134','到家':'#6B5B95'};
+// priority: point's own color > its tag's color（自定义优先，没自定义就用标签初始色） > its day's default color
 function stopColor(stop){
   if(stop.color) return stop.color;
   const tag = (stop.tag||'').trim();
-  if(tag && state.tagColors[tag]) return state.tagColors[tag];
+  if(tag) return state.tagColors[tag] || DEFAULT_TAG_COLORS[tag] || colorFor(stop.day);
   return colorFor(stop.day);
 }
 function segColor(i){
@@ -1652,7 +1655,7 @@ function renderTagLegend(){
   Array.from(tags).forEach(tag=>{
     const chip=document.createElement('div');
     chip.className='legend-chip'+(activeTagFilter===tag?' active':'');
-    const sampleColor = state.tagColors[tag] || '#7A7568';
+    const sampleColor = state.tagColors[tag] || DEFAULT_TAG_COLORS[tag] || '#7A7568';
     if(activeTagFilter===tag) chip.style.border='1.5px solid '+sampleColor;
     const dot=document.createElement('span'); dot.className='legend-dot'; dot.style.background=sampleColor;
     const label=document.createElement('span'); label.textContent=tag;
@@ -4145,6 +4148,9 @@ function parseItineraryText(text){
   const dayHeaderRe = /^(第\s*([0-9一二三四五六七八九十]+)\s*天|day\s*([0-9]+)|D([0-9]+))\s*[:：]?\s*(.*)$/i;
   // 标题后面/普通行里，只要出现这些词，就判定是行程说明而不是地名——sooner drop than misparse
   const descriptiveWordRe = /(约|公里|km|小时|车程|门票|元|￥|¥|深度|游玩|环湖|一日游|打卡|漫步|欣赏|体验|品尝|抵达|游览|畅游|返程|高速|收费站|风光|古城|文化|路段)/;
+  // 一个块整体是不是单纯的距离/时间/费用标注（比如“约150公里”、“2.5h”、“车程3小时”）——中文行程里常见的
+  // “A-B 约YY公里，ZZh”这类写法，逗号后面跟的就是这种块，要把它们挑出来当备注，不能误认成地名
+  const annotationOnlyRe = /^[（(]?(?:约|大约|大概|全程|车程|距离|耗时|路程|需|需要)?\s*[\d.]+(?:\s*[-~至到]\s*[\d.]+)?\s*(?:公里|千米|km|米|m|小时|钟头|h|min|分钟|元|￥|¥)\s*(?:左右|上下|车程)?[）)]?$/i;
   const labelLineRe = /^(行程|亮点|景点|美食|住宿|门票|贴士|tips?|备注|交通|路线|游玩|注意事项|注意|提示|花费|预算)\s*[:：]\s*(.*)$/i;
   const NAME = '[\\u4e00-\\u9fa5A-Za-z0-9·]{2,10}'; // 一个地名大概的形状：2-10个汉字/字母/数字
 
@@ -4194,11 +4200,23 @@ function parseItineraryText(text){
     return true;
   }
   function splitDayRemainder(str){
-    // 天数标题后面的内容才允许按 "A — B — C" 拆成多个地点，别的地方一律不拆
+    // 天数标题后面的内容才允许按 "A — B — C" 拆成多个地点，还支持中文行程里最常见的半角短横线 "A-B"
     str = str.replace(/[（(][^）)]*[）)]/g, ' ').replace(/\s+/g,' ').trim();
     if(!str) return [];
-    const seps = /->|→|—+|–+|~+|、|,|，|;|；|\s到\s|\s至\s/;
+    const seps = /->|→|—+|–+|-+|~+|、|,|，|;|；|\s到\s|\s至\s/;
     return seps.test(str) ? str.split(seps).map(s=>s.trim()).filter(Boolean) : [str];
+  }
+  // 拆完之后逐块判断：像距离/时间标注的块挖出来当备注，其余才当地名推进——
+  // 修复“西宁-青海湖 约150公里，2.5h”被拆成两个错误地点的情况
+  function pushRouteChunks(chunks, day){
+    const notes=[];
+    chunks.forEach(c=>{
+      if(!c) return;
+      if(annotationOnlyRe.test(c)) notes.push(c);
+      else if(looksLikePlace(c)) pushStop(c, day);
+      else notes.push(c);
+    });
+    if(notes.length) attachNote(notes.join('，'));
   }
   function pushStop(name, day, tag){
     const cleaned = cleanName(name);
@@ -4232,8 +4250,8 @@ function parseItineraryText(text){
         const natural = extractNaturalPlaces(remainder);
         if(natural.length){
           natural.forEach(n=> pushStop(n.name, curDay, n.tag));
-        } else if(/->|→|—|–|、|,|，/.test(remainder)){
-          splitDayRemainder(remainder).forEach(name=> pushStop(name, curDay));
+        } else if(/->|→|—|–|-|、|,|，/.test(remainder)){
+          pushRouteChunks(splitDayRemainder(remainder), curDay);
         } else if(looksLikePlace(remainder)){
           pushStop(remainder, curDay);
         } else {
@@ -4253,6 +4271,13 @@ function parseItineraryText(text){
     // 再看是不是"行程：""亮点："这类小标签，是的话整句当备注，不当地点
     const label = line.match(labelLineRe);
     if(label){ attachNote(label[2] || line); return; }
+
+    // 明确的箭头/长短横折号连接多个地名（比如"西宁→青海湖 约150公里"），哪怕不在天数标题里，也按路线拆开，
+    // 同时把里面纯粗的公里数/耗时注释挖出来当备注（不用顮带升号/短横，因为普通行里里偶尔出现的冲符风险很小）
+    if(/->|→|—|–/.test(line)){
+      pushRouteChunks(splitDayRemainder(line), curDay);
+      return;
+    }
 
     // 普通行：像地点就当一个地点，不像就整行当备注——不再逐字符猜、不再按逗号拆多个
     if(looksLikePlace(line)) pushStop(line, curDay);
@@ -6018,6 +6043,7 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
     $('msListBody').querySelectorAll('[data-open]').forEach(el=>{
       el.addEventListener('click', async ()=>{
         await openRoute(el.dataset.open, el.dataset.name);
+        if(typeof ensureAmapReady==='function') ensureAmapReady();
         mTag=null; mView='timeline'; mRiding=false;
         $('msViewTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v==='timeline'));
         goScreen('plan'); renderPlan();
@@ -6345,14 +6371,7 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
   async function autoRecalcRoute(){
     if(typeof geocodeAndRoute!=='function') return;
     if(typeof connected==='undefined' || !connected){
-      if(typeof state!=='undefined' && state.apiKey && typeof loadAMapScript==='function' && !document.getElementById('amap-script')){
-        loadAMapScript();
-      }
-      let waited = 0;
-      while((typeof connected==='undefined' || !connected) && waited < 6000){
-        await new Promise(r=>setTimeout(r, 300));
-        waited += 300;
-      }
+      if(typeof ensureAmapReady==='function') await ensureAmapReady();
     }
     if(typeof connected==='undefined' || !connected){
       if(typeof toast==='function') toast('高德地图还没连上，路线暂时算不出来——网络恢复后重新打开这条路书会自动补上，也可以去电脑版点"重新规划"');
@@ -6410,6 +6429,8 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
           const nameInput = pane.querySelector('#msName');
           if(nameInput) nameInput.value = s.name;
           renderPlan();
+          if(typeof rebuildSegmentsSkeleton==='function') rebuildSegmentsSkeleton();
+          if(typeof window.renderMap==='function') window.renderMap();
           if(typeof autoRecalcRoute==='function') autoRecalcRoute();
         }
       ));
