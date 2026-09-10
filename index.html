@@ -5832,11 +5832,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
 body.ms-recommend-open #drawer-collapse{display:none}
 body.ms-recommend-open #recommendPanel-close,body.ms-recommend-open #drawer-close{order:-1;width:38px;height:38px;min-width:38px;border-radius:50%;background:#F3ECDE;font-size:0;flex:0 0 auto;position:relative}
 body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #drawer-close::before{content:'‹';font-size:22px;color:#2D2620;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-body.ms-map-open #screen-editor{display:block!important}
-body.ms-map-open #screen-editor>*:not(#main){display:none!important}
-body.ms-map-open #main>*:not(#mapwrap){display:none!important}
-body.ms-map-open #mapwrap{position:fixed!important;border-left:none!important;overflow:hidden}
-body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder,body.ms-map-open #mapwrap>#recalcBanner,body.ms-map-open #mapwrap>#progressLine,body.ms-map-open #mapwrap>#connError,body.ms-map-open #mapwrap>#drawer,body.ms-map-open #mapwrap>#recommendPanel{display:none!important}</style>
+</style>
 
 <div id="mshell">
   <div class="ms-scr" id="ms-list">
@@ -6262,40 +6258,60 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
     showMobileMap();
   }
 
-  /* 手机端“地图”视图——在原本静态缩略图的位置上换上真实的、可双指缩放拖动的高德地图，但仍然待在原来那个圆角框里（不做整页接管）——图块 #mapwrap 本体不搬家，只是用 position:fixed 把它数据对齐到一个占位块 #msMapSlot 的屏幕坐标上。 */
-  let __mapResizeHandler = null;
+  /* 手机端“地图”视图——在原本静态缩略图的位置上放一个完全独立、属于手机壳自己的高德地图实例（不再把桌面那个 #mapwrap 用 position:fixed 硬搬过来——
+     iOS Safari 地址栏收放会让 getBoundingClientRect 的时机不准，一旦测错就会把那个 fixed 层把整个屏幕都盖住，造成无法退出/无法切换其他 tab 的死锁），
+     跟 msPlanBody 一起普通地随页面流动，永远不会遮住其他控件。 */
+  let mMap = null, mMarkers = [], mPolylines = [], mSatLayer = null, mRoadLayer = null;
   async function showMobileMap(){
-    $('msPlanBody').innerHTML = '<div id="msMapSlot" style="position:relative;width:100%;height:min(58vh,460px);border-radius:14px;overflow:hidden;background:#E6EBE0"></div>'
-      + '<div class="ms-sub" style="padding:10px 6px 2px">可双指缩放拖动查看，右下角切换标准/卫星</div>';
-    document.body.classList.add('ms-map-open');
-    const ok = (typeof ensureAmapReady==='function') ? await ensureAmapReady() : !!window.AMap;
-    if(!ok){ toast('高德地图连接失败，检查网络后重试'); hideMobileMap(); return; }
-    if(typeof window.renderMap==='function') window.renderMap();
-    positionEmbeddedMap();
-    setTimeout(()=>{ if(typeof map!=='undefined' && map){ if(map.resize) map.resize(); if(map.setFitView) map.setFitView(); } positionEmbeddedMap(); }, 260);
-    if(!__mapResizeHandler){
-      __mapResizeHandler = ()=> positionEmbeddedMap();
-      window.addEventListener('resize', __mapResizeHandler);
+    if(!(mMap && document.getElementById('msMapSlot'))){
+      $('msPlanBody').innerHTML = '<div id="msMapSlot" style="width:100%;height:min(58vh,460px);border-radius:14px;overflow:hidden;background:#E6EBE0"></div>'
+        + '<div id="msMapToggle" style="display:flex;gap:6px;margin-top:10px">'
+        + '<button data-maptype="standard" class="ms-pill on">标准</button>'
+        + '<button data-maptype="satellite" class="ms-pill">卫星</button></div>'
+        + '<div class="ms-sub" style="padding:8px 6px 2px">可双指缩放拖动查看</div>';
+      const ok = (typeof ensureAmapReady==='function') ? await ensureAmapReady() : !!window.AMap;
+      if(!ok || !document.getElementById('msMapSlot')){ $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C">高德地图连接失败，检查网络后重试</div>'; return; }
+      try{
+        mMap = new AMap.Map('msMapSlot', { zoom:5, center:[100.5,34.5], mapStyle:'amap://styles/whitesmoke' });
+        mSatLayer = new AMap.TileLayer.Satellite();
+        mRoadLayer = new AMap.TileLayer.RoadNet();
+      }catch(e){ $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C">地图初始化失败：'+esc(e.message||'')+'</div>'; return; }
+      const toggle = $('msMapToggle');
+      if(toggle) toggle.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+        toggle.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+        b.classList.add('on');
+        if(!mMap) return;
+        if(b.dataset.maptype==='satellite') mMap.setLayers([new AMap.TileLayer(), mSatLayer, mRoadLayer]);
+        else mMap.setLayers([new AMap.TileLayer()]);
+      }));
     }
+    drawMobileMapMarkers();
   }
-  function positionEmbeddedMap(){
-    const slot = document.getElementById('msMapSlot');
-    const wrap = document.getElementById('mapwrap');
-    if(!slot || !wrap || !document.body.classList.contains('ms-map-open')) return;
-    const r = slot.getBoundingClientRect();
-    wrap.style.position='fixed';
-    wrap.style.left=r.left+'px'; wrap.style.top=r.top+'px';
-    wrap.style.width=r.width+'px'; wrap.style.height=r.height+'px';
-    wrap.style.borderRadius='14px';
-    wrap.style.zIndex='9400';
-    if(typeof map!=='undefined' && map && map.resize) map.resize();
+  function drawMobileMapMarkers(){
+    if(!mMap) return;
+    mMarkers.forEach(m=>m.setMap(null)); mMarkers=[];
+    mPolylines.forEach(p=>p.setMap(null)); mPolylines=[];
+    const st = (state && state.stops) || [];
+    st.forEach((s,i)=>{
+      if(s.lng==null) return;
+      const el = document.createElement('div');
+      const color = stopColor(s);
+      el.style.cssText = 'width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:'+color+';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;';
+      const num=document.createElement('span'); num.textContent=(i+1); num.style.cssText='transform:rotate(45deg);color:#fff;font-size:10px;font-weight:700;';
+      el.appendChild(num);
+      const marker = new AMap.Marker({ position:[s.lng,s.lat], content:el, offset:new AMap.Pixel(-11,-22), map:mMap });
+      mMarkers.push(marker);
+    });
+    (state.segments||[]).forEach((seg,i)=>{
+      if(!seg || !seg.path || !seg.path.length) return;
+      const pl = new AMap.Polyline({ path:seg.path, strokeColor:segColor(i), strokeWeight:5, strokeOpacity:.85, map:mMap });
+      mPolylines.push(pl);
+    });
+    if(mMarkers.length) mMap.setFitView(mMarkers.map(m=>m), false, [20,20,20,20]);
   }
   function hideMobileMap(){
-    if(!document.body.classList.contains('ms-map-open')) return;
-    document.body.classList.remove('ms-map-open');
-    const wrap = document.getElementById('mapwrap');
-    if(wrap){ wrap.style.position=''; wrap.style.left=''; wrap.style.top=''; wrap.style.width=''; wrap.style.height=''; wrap.style.borderRadius=''; wrap.style.zIndex=''; }
-    if(__mapResizeHandler){ window.removeEventListener('resize', __mapResizeHandler); __mapResizeHandler=null; }
+    if(mMap){ try{ mMap.destroy(); }catch(e){} mMap=null; }
+    mMarkers=[]; mPolylines=[];
   }
 
   function bindPlanBody(){
