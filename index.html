@@ -5850,13 +5850,12 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
 <script>
 /* ============ 手机版外壳：复用桌面版的 state / saveState / openRoute / 沿途推荐 ============ */
 (function(){
-  const TAGC = {'出发点':'#3E362C','住宿':'#1D6FA5','美食':'#C2693F','景点':'#5B7A46','补能':'#B98134','到家':'#6B5B95'};
+  const TAGC = {'出发点':'#33454A','住宿':'#1D6FA5','美食':'#D8703A','景点':'#5B7A46','补能':'#B98134','到家':'#6B5B95'};
   const TAGS = ['出发点','住宿','美食','景点','补能','到家'];
   let mScreen='list', mView='timeline', mTag=null, mRiding=false, mPlazaTab='routes';
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const stopColor = s => TAGC[(s.tag||'').trim()] || (typeof DAY_COLORS_HEX!=='undefined' ? (DAY_COLORS_HEX[((s.day||1)-1)%8]||'#3E362C') : '#3E362C');
   const fmtMin = m => m==null ? '—' : (m>=60 ? Math.floor(m/60)+' 小时 '+(m%60)+' 分' : m+' 分');
   const segAt = i => (state && state.segments && state.segments[i]) || null;
 
@@ -6069,7 +6068,7 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
     let html = '<button class="ms-pill'+(mTag?'':' on')+'" data-tag="">全部 '+st.length+'</button>';
     Object.keys(counts).forEach(t=>{
       html += '<button class="ms-pill'+(mTag===t?' on':'')+'" data-tag="'+esc(t)+'">'
-        + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+(TAGC[t]||'#7A7568')+';margin-right:6px"></span>'+esc(t)+' '+counts[t]+'</button>';
+        + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+((state.tagColors&&state.tagColors[t])||TAGC[t]||'#7A7568')+';margin-right:6px"></span>'+esc(t)+' '+counts[t]+'</button>';
     });
     $('msTagChips').innerHTML = html;
     $('msTagChips').querySelectorAll('[data-tag]').forEach(b=>b.addEventListener('click', ()=>{
@@ -6119,8 +6118,8 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
       if(!rows.length && mTag) return;
       let dk=0, dm=0;
       st.forEach((s,i)=>{ if(st[i+1] && st[i+1].day===day){ const g=segAt(i); if(g){ dk+=g.km||0; dm+=g.min||0; } } });
-      html += '<div style="margin-bottom:20px"><div class="ms-row" style="margin-bottom:10px">'
-        + '<div style="width:26px;height:26px;border-radius:8px;background:'+((typeof DAY_COLORS_HEX!=='undefined'&&DAY_COLORS_HEX[(day-1)%8])||'#3E362C')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">'+day+'</div>'
+      html += '<div style="margin-bottom:22px"><div class="ms-row" style="margin-bottom:10px">'
+        + '<div data-daycolor="'+day+'" title="点一下换个颜色" style="width:26px;height:26px;border-radius:8px;background:'+colorFor(day)+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer">'+day+'</div>'
         + '<div style="font-size:14px;font-weight:700">第 '+day+' 天</div>'
         + '<div style="flex:1;height:1px;background:#E9DFC9"></div>'
         + '<div class="ms-sub">'+Math.round(dk)+' km · '+fmtMin(dm)+'</div></div>';
@@ -6131,21 +6130,25 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
       firstStopOverall = false;
       rows.forEach(function(x){
         const s = x.s, i = x.i, c = stopColor(s), g = segAt(i);
-        html += '<div class="ms-card" data-stop="'+i+'" style="padding:15px 16px;margin-bottom:10px;border:1px solid '+((state.currentIndex===i)?'#C2693F':'transparent')+'">'
-          + '<div class="ms-row" style="gap:12px"><div style="width:24px;height:24px;border-radius:50%;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex:0 0 auto">'+(i+1)+'</div>'
-          + '<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.name)
-          + (s.tag? ' <span style="font-size:10.5px;font-weight:600;color:'+c+';background:'+c+'18;border-radius:5px;padding:2px 6px">'+esc(s.tag)+'</span>':'')
-          + '</div>'+(s.note? '<div class="ms-sub" style="margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.note)+'</div>':'')
-          + '</div><button data-nav="'+i+'" class="ms-pill" style="flex:0 0 auto">导航</button>'
-          + '<div style="color:#B4BDB4">›</div></div></div>';
+        html += '<div class="ms-card" data-stop="'+i+'" style="padding:0;overflow:hidden;margin-bottom:12px;border:2px solid '+((state.currentIndex===i)?'#C2693F':'transparent')+'">'
+          + '<div style="background:'+c+';color:#fff;padding:14px 15px;display:flex;align-items:center;gap:11px">'
+          + '<div style="width:25px;height:25px;border-radius:50%;background:rgba(255,255,255,.26);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex:0 0 auto">'+(i+1)+'</div>'
+          + '<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.name)+'</div>'
+          + (s.tag? '<div style="font-size:10.5px;opacity:.85;margin-top:2px">'+esc(s.tag)+'</div>':'')
+          + '</div>'
+          + '<button data-navto="'+i+'" title="从我的位置导航到这里" style="flex:0 0 auto;border:none;background:rgba(255,255,255,.24);color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;line-height:1;cursor:pointer">➤</button>'
+          + '</div>'
+          + (s.note? '<div style="padding:10px 15px 0;font-size:12.5px;color:#7D6E5C;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.note)+'</div>':'')
+          + (st[i+1] ? ('<div style="display:flex;align-items:center;gap:8px;padding:10px 15px 13px">'
+              + '<div class="ms-sub" style="flex:0 0 auto">'+(g&&g.km? Math.round(g.km)+' km · '+fmtMin(g.min) : '这段还没有路线数据')+'</div>'
+              + '<div style="flex:1"></div>'
+              + '<button data-seg="'+i+'" class="ms-pill" style="padding:6px 11px;font-size:11.5px">沿途搜</button>'
+              + '<button data-nav="'+i+'" class="ms-pill" style="padding:6px 11px;font-size:11.5px">路线导航</button>'
+              + '</div>') : '<div style="padding:0 0 8px"></div>')
+          + '</div>';
         if(st[i+1] && !mTag){
-          html += '<div class="ms-row" style="margin:6px 0 6px 28px;padding:6px 10px 6px 0;gap:10px">'
-            + '<div style="width:2px;height:26px;background:#D3DBCB;border-radius:2px;flex:0 0 auto"></div>'
-            + '<div data-seg="'+i+'" style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer">'
-            + '<div class="ms-sub">'+(g&&g.km? Math.round(g.km)+' km · '+fmtMin(g.min) : '这段还没有路线数据')+'</div>'
-            + '<div style="font-size:11.5px;color:#C2693F;font-weight:600;white-space:nowrap">沿途搜一搜 →</div></div>'
-            + '<button data-insert="'+i+'" title="在这两点之间插入一个点" style="flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px dashed #B4BDB4;background:#fff;color:#9C8D7A;font-size:14px;line-height:1;cursor:pointer">＋</button>'
-            + '</div>';
+          html += '<div data-insert="'+i+'" title="在这两点之间插入一个点" style="display:flex;align-items:center;justify-content:center;padding:2px 0 10px;cursor:pointer">'
+            + '<span style="width:22px;height:22px;border-radius:50%;border:1px dashed #B4BDB4;color:#9C8D7A;font-size:13px;display:flex;align-items:center;justify-content:center">＋</span></div>';
         }
       });
       html += '<div data-insert="'+(function(){ let idx=-1; st.forEach((s,i)=>{ if(s.day===day) idx=i; }); return idx; })()+'" style="margin-left:26px;padding:8px 10px;font-size:12.5px;color:#9C8D7A">＋ 在这一天最后加一个点</div></div>';
@@ -6194,6 +6197,12 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
     body.querySelectorAll('[data-stop]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); openSheet(+el.dataset.stop); }));
     body.querySelectorAll('[data-seg]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); openSegmentPanel(+el.dataset.seg); }));
     body.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); navFrom(+el.dataset.nav); }));
+    body.querySelectorAll('[data-navto]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); navToStop(+el.dataset.navto); }));
+    body.querySelectorAll('[data-daycolor]').forEach(el=>el.addEventListener('click', e=>{
+      e.stopPropagation();
+      const day = +el.dataset.daycolor;
+      if(typeof pickColor==='function') pickColor(colorFor(day), hex=>{ state.dayColors[day]=hex; if(typeof markDirty==='function') markDirty(); saveState(); renderPlan(); if(typeof renderAll==='function') renderAll(); });
+    }));
     body.querySelectorAll('[data-insert]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); insertStopAfter(+el.dataset.insert); }));
     body.querySelectorAll('[data-textimport]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); if(typeof showTextImportDialog==='function') showTextImportDialog({ appendToCurrent:true }); }));
   }
@@ -6206,6 +6215,16 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
     }
     window.open('https://uri.amap.com/navigation?from='+a.lng+','+a.lat+','+encodeURIComponent(a.name)
       +'&to='+b.lng+','+b.lat+','+encodeURIComponent(b.name)+'&mode=car&policy=1&src=roadbook&callnative=1','_blank');
+  }
+
+  /* 从「我的位置」导航到某个点位——跟 navFrom（两点间路线导航）是两件不同的事 */
+  function navToStop(i){
+    const st = state.stops, a = st[i];
+    if(!a || a.lng==null){
+      if(typeof toast==='function') toast('这个点还没有坐标，先在电脑版解析一下');
+      return;
+    }
+    window.open('https://uri.amap.com/navigation?to='+a.lng+','+a.lat+','+encodeURIComponent(a.name)+'&mode=car&policy=1&src=roadbook&callnative=1','_blank');
   }
 
   /* 在任意两个点之间（或最前面 i=-1）插入一个新点，加完立刻自动定位坐标、
