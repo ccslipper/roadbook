@@ -14,13 +14,13 @@
 <link rel="icon" href="favicon-32.png" sizes="32x32">
 <style>
   :root{
-    --bg:#F0F2EC;
+    --bg:#F3ECDE;
     --surface:#FFFFFF;
-    --ink:#1B2A2E;
-    --ink-soft:#5B6B67;
-    --line:#DDE2D8;
-    --accent:#D8703A;
-    --d0:#33454A;
+    --ink:#2D2620;
+    --ink-soft:#7D6E5C;
+    --line:#E9DFC9;
+    --accent:#C2693F;
+    --d0:#3E362C;
     --d1:#5B7A46;
     --d2:#B98134;
     --d3:#1D6FA5;
@@ -5660,48 +5660,67 @@ async function openRoute(routeId, routeName){
 
 <style id="mobile-shell-css">
 #mshell{display:none}
-body.mobile-on #mshell{display:block;position:fixed;inset:0;z-index:9000;background:#F0F2EC;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif;color:#1B2A2E;overflow:hidden}
+body.mobile-on #mshell{display:block;position:fixed;inset:0;z-index:9000;background:#F3ECDE;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif;color:#2D2620;overflow:hidden}
 body.mobile-on>.app-screen{display:none!important}
-body.mobile-on #screen-profile.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important}
-body.mobile-on #screen-travelogue-list.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important}
-body.mobile-on #screen-travelogue.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important}
-body.mobile-on #tll-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 14px)!important}
-body.mobile-on #tl-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 14px)!important;flex-wrap:wrap}
+body.mobile-on #screen-profile.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important;animation:msSlideIn .22s ease-out}
+body.mobile-on #screen-travelogue-list.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important;animation:msSlideIn .22s ease-out}
+body.mobile-on #screen-travelogue.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important;animation:msSlideIn .22s ease-out}
+body.mobile-on #tll-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important}
+body.mobile-on #tl-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important;flex-wrap:wrap}
 body.mobile-on #tlTitleInput{width:100%;max-width:none;order:3;margin-top:6px}
 body.mobile-on #tl-main{flex-direction:column}
 body.mobile-on #tl-editor-col{width:100%;flex:1 1 auto;border-right:none}
 body.mobile-on #tl-preview-col{display:none}
+@keyframes msFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes msSlideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+@keyframes msSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes msSheetBgIn{from{opacity:0}to{opacity:1}}
+@keyframes msShimmer{0%{background-position:-120% 0}100%{background-position:120% 0}}
+@keyframes msSpin{to{transform:rotate(360deg)}}
 #mshell .ms-scr{position:absolute;inset:0;display:none;flex-direction:column}
-#mshell .ms-scr.on{display:flex}
-#mshell .ms-head{flex:0 0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px;background:#fff;box-shadow:0 2px 12px rgba(27,42,46,.06)}
-#mshell .ms-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 96px}
-#mshell .ms-title{font-size:20px;font-weight:700;margin:0}
-#mshell .ms-sub{font-size:11.5px;color:#8A968F;margin-top:4px}
-#mshell .ms-card{background:#fff;border-radius:16px;padding:14px 15px;margin-bottom:11px;box-shadow:0 4px 14px rgba(27,42,46,.05)}
+#mshell .ms-scr.on{display:flex;animation:msFadeIn .18s ease-out}
+#mshell .ms-head{flex:0 0 auto;padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 13px;background:#fff;box-shadow:0 2px 14px rgba(45,38,32,.06)}
+#mshell .ms-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 100px}
+#mshell .ms-title{font-size:21px;font-weight:700;margin:0;letter-spacing:-.01em}
+#mshell .ms-sub{font-size:12px;color:#8C7C68;margin-top:4px}
+#mshell .ms-card{background:#fff;border-radius:16px;padding:15px 16px;margin-bottom:12px;box-shadow:0 4px 16px rgba(45,38,32,.06)}
 #mshell .ms-row{display:flex;align-items:center;gap:11px}
-#mshell .ms-pill{border:1px solid #DDE2D8;background:#fff;color:#5B6B67;border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:600;white-space:nowrap;flex:0 0 auto}
-#mshell .ms-pill.on{border-color:#D8703A;background:#FBF1E8;color:#B95A28}
-#mshell .ms-chips{display:flex;gap:7px;overflow-x:auto;padding-top:10px;scrollbar-width:none}
+#mshell .ms-pill{border:1px solid #E9DFC9;background:#fff;color:#71624F;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:600;white-space:nowrap;flex:0 0 auto;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
+#mshell .ms-pill.on{border-color:#C2693F;background:#F5E4D5;color:#A6522F}
+#mshell .ms-chips{display:flex;gap:7px;overflow-x:auto;padding-top:11px;scrollbar-width:none}
 #mshell .ms-chips::-webkit-scrollbar{display:none}
-#mshell .ms-tabs{display:flex;gap:6px;background:#F0F2EC;border-radius:12px;padding:4px;margin-top:12px}
-#mshell .ms-tabs button{flex:1;border:none;background:none;border-radius:9px;padding:9px 0;font-size:13px;font-weight:600;color:#8A968F}
-#mshell .ms-tabs button.on{background:#fff;color:#1B2A2E;box-shadow:0 2px 8px rgba(27,42,46,.1)}
-#mshell .ms-btn{border:none;background:#D8703A;color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700}
-#mshell .ms-btn.ghost{border:1px solid #DDE2D8;background:#fff;color:#33454A;font-weight:600}
-#mshell .ms-bar{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(255,255,255,.97);border-top:1px solid #DDE2D8;padding:8px 4px calc(env(safe-area-inset-bottom,0px) + 8px);z-index:20}
-#mshell .ms-bar button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:#9AA69E;font-size:10.5px;font-weight:600}
-#mshell .ms-bar button.on{color:#D8703A}
-#mshell .ms-bar .ms-ic{font-size:16px;line-height:1}
+#mshell .ms-tabs{display:flex;gap:6px;background:#F3ECDE;border-radius:12px;padding:4px;margin-top:13px}
+#mshell .ms-tabs button{flex:1;border:none;background:none;border-radius:9px;padding:9px 0;font-size:13px;font-weight:600;color:#9C8D7A;transition:color .15s}
+#mshell .ms-tabs button.on{background:#fff;color:#2D2620;box-shadow:0 2px 8px rgba(45,38,32,.1)}
+#mshell .ms-btn{border:none;background:#C2693F;color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700;min-height:44px}
+#mshell .ms-btn.ghost{border:1px solid #E9DFC9;background:#fff;color:#3E362C;font-weight:600}
+#mshell .ms-back{width:38px;height:38px;min-width:38px;border-radius:50%;border:none;background:#F3ECDE;color:#2D2620;font-size:20px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;line-height:1}
+#mshell .ms-back:active{background:#E9DFC9}
+#mshell .ms-bar{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(255,253,248,.97);border-top:1px solid #E9DFC9;padding:8px 4px calc(env(safe-area-inset-bottom,0px) + 8px);z-index:20;backdrop-filter:blur(6px)}
+#mshell .ms-bar button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:#A69A87;font-size:10.5px;font-weight:600;transition:color .15s;min-height:44px}
+#mshell .ms-bar button.on{color:#C2693F}
+#mshell .ms-bar .ms-ic{width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+#mshell .ms-bar .ms-ic svg{width:20px;height:20px}
 #mshell .ms-sheet{position:absolute;inset:0;z-index:60;display:none}
 #mshell .ms-sheet.on{display:block}
-#mshell .ms-sheet-bg{position:absolute;inset:0;background:rgba(27,42,46,.42)}
+#mshell .ms-sheet.on .ms-sheet-bg{animation:msSheetBgIn .18s ease-out}
+#mshell .ms-sheet.on .ms-sheet-pane{animation:msSheetUp .22s cubic-bezier(.32,.72,0,1)}
+#mshell .ms-sheet-bg{position:absolute;inset:0;background:rgba(45,38,32,.42)}
 #mshell .ms-sheet-pane{position:absolute;left:0;right:0;bottom:0;max-height:80%;overflow-y:auto;background:#fff;border-radius:22px 22px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 28px)}
-#mshell .ms-grab{width:38px;height:4px;border-radius:2px;background:#DDE2D8;margin:0 auto 14px}
-#mshell .ms-in{width:100%;box-sizing:border-box;border:1px solid #DDE2D8;background:#FBFBF9;border-radius:12px;padding:11px 12px;font-size:14px;outline:none;font-family:inherit}
-#mshell .ms-relay{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 78px);display:none;align-items:center;gap:10px;background:#33454A;border-radius:16px;padding:11px 12px 11px 14px;box-shadow:0 10px 26px rgba(27,42,46,.24);z-index:30}
-#mshell .ms-relay.on{display:flex}
-body.mobile-on #backFromProfileBtn{padding:11px 16px!important;font-size:22px!important;min-width:44px;min-height:44px}
-body.mobile-on #profile-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 14px)!important}
+#mshell .ms-grab{width:38px;height:4px;border-radius:2px;background:#E9DFC9;margin:0 auto 14px}
+#mshell .ms-in{width:100%;box-sizing:border-box;border:1px solid #E9DFC9;background:#FBF5EA;border-radius:12px;padding:11px 12px;font-size:14px;outline:none;font-family:inherit}
+#mshell .ms-relay{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 78px);display:none;align-items:center;gap:10px;background:#3E362C;border-radius:16px;padding:11px 12px 11px 14px;box-shadow:0 10px 26px rgba(45,38,32,.28);z-index:30}
+#mshell .ms-relay.on{display:flex;animation:msFadeIn .2s ease-out}
+#mshell .ms-relay .ms-pill{width:34px;height:34px;min-width:34px;border-radius:50%;padding:0;background:none;border-color:rgba(243,236,222,.3);color:#F3ECDE}
+#mshell .ms-relay #msRelayOff{width:32px;height:32px;border:none;background:none;color:rgba(243,236,222,.55);font-size:16px;flex:0 0 auto;padding:0}
+#mshell .ms-skel{background:linear-gradient(90deg,#EFE7D6 25%,#F7F1E4 37%,#EFE7D6 63%);background-size:400% 100%;animation:msShimmer 1.4s ease infinite;border-radius:8px;display:block}
+#mshell .ms-skel-card{background:#fff;border-radius:16px;padding:15px 16px;margin-bottom:12px;box-shadow:0 4px 16px rgba(45,38,32,.05)}
+#mshell .ms-skel-line{height:13px;margin-bottom:8px}
+.ms-pull{display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;color:#8C7C68;font-size:12px;font-weight:600;gap:6px;transition:height .15s}
+.ms-pull.show{height:44px}
+.ms-pull .ms-spin{width:14px;height:14px;border-radius:50%;border:2px solid #E9DFC9;border-top-color:#C2693F;animation:msSpin .6s linear infinite}
+body.mobile-on #backFromProfileBtn{width:38px!important;height:38px!important;min-width:38px;border-radius:50%;background:#F3ECDE!important;color:#2D2620!important;font-size:19px!important;display:flex;align-items:center;justify-content:center;padding:0!important}
+body.mobile-on #profile-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important;background:#3E362C!important}
 body.ms-recommend-open #screen-editor{display:block!important}
 /* #mapwrap 其实不是 #screen-editor 的直接子元素，中间还隔着 #main 这层——
    之前这里只放过了 #mapwrap 自己，#main 作为它的父级被下面这条规则连坐隐藏
@@ -5711,11 +5730,13 @@ body.ms-recommend-open #screen-editor{display:block!important}
 body.ms-recommend-open #screen-editor>*:not(#main){display:none!important}
 body.ms-recommend-open #main>*:not(#mapwrap){display:none!important}
 body.ms-recommend-open #mapwrap>*:not(#recommendPanel):not(#drawer){display:none!important}
-body.ms-recommend-open #recommendPanel{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;border-left:none!important;z-index:9999!important;display:flex!important}
-body.ms-recommend-open #drawer{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;max-height:100%!important;z-index:9999!important;transform:none!important;border-radius:0!important}
-body.ms-recommend-open #recommendPanel-head{padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
-body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
-</style>
+body.ms-recommend-open #recommendPanel{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;border-left:none!important;z-index:9999!important;display:flex!important;animation:msSlideIn .2s ease-out}
+body.ms-recommend-open #drawer{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;max-height:100%!important;z-index:9999!important;transform:none!important;border-radius:0!important;animation:msSlideIn .2s ease-out}
+body.ms-recommend-open #recommendPanel-head{padding-top:calc(env(safe-area-inset-top,0px) + 16px);gap:12px}
+body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px) + 16px);gap:12px}
+body.ms-recommend-open #drawer-collapse{display:none}
+body.ms-recommend-open #recommendPanel-close,body.ms-recommend-open #drawer-close{order:-1;width:38px;height:38px;min-width:38px;border-radius:50%;background:#F3ECDE;font-size:0;flex:0 0 auto;position:relative}
+body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #drawer-close::before{content:'‹';font-size:22px;color:#2D2620;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}</style>
 
 <div id="mshell">
   <div class="ms-scr" id="ms-list">
@@ -5728,13 +5749,18 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         <button class="ms-pill" id="msNewBtn">＋ 新建</button>
       </div>
     </div>
-    <div class="ms-body" id="msListBody"></div>
+    <div class="ms-pull" id="msPull"><span class="ms-spin"></span>下拉刷新</div>
+    <div class="ms-body" id="msListBody">
+      <div class="ms-skel-card"><div class="ms-skel ms-skel-line" style="width:55%"></div><div class="ms-skel ms-skel-line" style="width:32%;height:10px"></div></div>
+      <div class="ms-skel-card"><div class="ms-skel ms-skel-line" style="width:62%"></div><div class="ms-skel ms-skel-line" style="width:28%;height:10px"></div></div>
+      <div class="ms-skel-card"><div class="ms-skel ms-skel-line" style="width:45%"></div><div class="ms-skel ms-skel-line" style="width:36%;height:10px"></div></div>
+    </div>
   </div>
 
   <div class="ms-scr" id="ms-plan">
     <div class="ms-head">
       <div class="ms-row">
-        <button class="ms-pill" id="msBackBtn" style="padding:11px 18px;font-size:15px;font-weight:700;min-width:44px;min-height:44px">‹ 返回</button>
+        <button class="ms-back" id="msBackBtn" aria-label="返回">‹</button>
         <div style="flex:1;min-width:0">
           <div style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="msPlanName">路书</div>
           <div class="ms-sub" id="msPlanMeta"></div>
@@ -5750,25 +5776,28 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     </div>
     <div class="ms-body" id="msPlanBody"></div>
     <div class="ms-relay" id="msRelay">
-      <button class="ms-pill" id="msPrevStop" style="background:none;border-color:rgba(240,242,236,.3);color:#F0F2EC;padding:6px 10px">‹</button>
-      <div style="flex:1;min-width:0;color:#F0F2EC">
+      <button class="ms-pill" id="msPrevStop">‹</button>
+      <div style="flex:1;min-width:0;color:#F3ECDE">
         <div style="font-size:10.5px;opacity:.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="msRelayCur"></div>
         <div style="font-size:13.5px;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="msRelayNext"></div>
       </div>
       <button class="ms-btn" id="msRelayGo" style="padding:10px 13px;font-size:12.5px">导航接力</button>
-      <button id="msRelayOff" style="border:none;background:none;color:rgba(240,242,236,.55);font-size:15px">✕</button>
+      <button id="msRelayOff">✕</button>
     </div>
   </div>
 
   <div class="ms-scr" id="ms-plaza">
     <div class="ms-head"><h1 class="ms-title">广场</h1><div class="ms-sub">别人公开的路书和游记，路书可以直接抄一份改成自己的</div></div>
-    <div class="ms-body" id="msPlazaBody"></div>
+    <div class="ms-body" id="msPlazaBody">
+      <div class="ms-skel-card"><div class="ms-skel" style="height:0;margin-bottom:0"></div><div class="ms-skel ms-skel-line" style="width:50%"></div><div class="ms-skel ms-skel-line" style="width:32%;height:10px;margin-bottom:0"></div></div>
+      <div class="ms-skel-card"><div class="ms-skel ms-skel-line" style="width:40%"></div><div class="ms-skel ms-skel-line" style="width:28%;height:10px;margin-bottom:0"></div></div>
+    </div>
   </div>
 
   <div class="ms-scr" id="ms-plaza-preview">
     <div class="ms-head">
       <div class="ms-row">
-        <button class="ms-pill" id="msPlazaBackBtn" style="padding:11px 18px;font-size:15px;font-weight:700;min-width:44px;min-height:44px">‹ 返回</button>
+        <button class="ms-back" id="msPlazaBackBtn" aria-label="返回">‹</button>
         <div style="flex:1;min-width:0">
           <div style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="msPlazaPreviewName">路书</div>
           <div class="ms-sub" id="msPlazaPreviewMeta"></div>
@@ -5776,19 +5805,23 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       </div>
     </div>
     <div class="ms-body" id="msPlazaPreviewBody" style="padding-bottom:96px"></div>
-    <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 10px);background:rgba(255,255,255,.97);border-top:1px solid #DDE2D8">
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 10px);background:rgba(255,253,248,.97);border-top:1px solid #E9DFC9">
       <button class="ms-btn" id="msPlazaAddBtn" style="width:100%;display:none">添加至我的路书</button>
     </div>
   </div>
 
   <div class="ms-scr" id="ms-journal">
     <div class="ms-head"><h1 class="ms-title">游记</h1><div class="ms-sub" id="msJournalSub">记录路上的故事，写完还能发到广场</div></div>
-    <div class="ms-body" id="msJournalBody"></div>
+    <div class="ms-body" id="msJournalBody">
+      <div class="ms-skel-card"><div class="ms-skel ms-skel-line" style="width:65%"></div><div class="ms-skel ms-skel-line" style="width:38%;height:10px;margin-bottom:0"></div></div>
+    </div>
   </div>
 
   <div class="ms-scr" id="ms-me">
     <div class="ms-head"><h1 class="ms-title">我的</h1><div class="ms-sub" id="msMeSub"></div></div>
-    <div class="ms-body" id="msMeBody"></div>
+    <div class="ms-body" id="msMeBody">
+      <div class="ms-skel-card"><div class="ms-skel ms-skel-line" style="width:40%;margin-bottom:0"></div></div>
+    </div>
   </div>
 
   <div class="ms-sheet" id="msSheet">
@@ -5797,10 +5830,10 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   </div>
 
   <div class="ms-bar" id="msTabBar">
-    <button data-s="list" class="on"><span class="ms-ic">◎</span>路书</button>
-    <button data-s="plaza"><span class="ms-ic">✦</span>广场</button>
-    <button data-s="journal"><span class="ms-ic">▤</span>游记</button>
-    <button data-s="me"><span class="ms-ic">☺</span>我的</button>
+    <button data-s="list" class="on"><span class="ms-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.3" fill="currentColor"/></svg></span>路书</button>
+    <button data-s="plaza"><span class="ms-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="7" y="7" width="10" height="10" stroke="currentColor" stroke-width="2" transform="rotate(45 12 12)"/></svg></span>广场</button>
+    <button data-s="journal"><span class="ms-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8.5" y1="9.5" x2="15.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><line x1="8.5" y1="13.5" x2="14" y2="13.5" stroke="currentColor" stroke-width="1.6"/></svg></span>游记</button>
+    <button data-s="me"><span class="ms-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.6" stroke="currentColor" stroke-width="2"/><path d="M5.5 19c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>我的</button>
   </div>
 </div>
 <button id="msSwitch">手机版</button>
@@ -5808,13 +5841,13 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
 <script>
 /* ============ 手机版外壳：复用桌面版的 state / saveState / openRoute / 沿途推荐 ============ */
 (function(){
-  const TAGC = {'出发点':'#33454A','住宿':'#1D6FA5','美食':'#D8703A','景点':'#5B7A46','补能':'#B98134','到家':'#6B5B95'};
+  const TAGC = {'出发点':'#3E362C','住宿':'#1D6FA5','美食':'#C2693F','景点':'#5B7A46','补能':'#B98134','到家':'#6B5B95'};
   const TAGS = ['出发点','住宿','美食','景点','补能','到家'];
   let mScreen='list', mView='timeline', mTag=null, mRiding=false, mPlazaTab='routes';
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const stopColor = s => TAGC[(s.tag||'').trim()] || (typeof DAY_COLORS_HEX!=='undefined' ? (DAY_COLORS_HEX[((s.day||1)-1)%8]||'#33454A') : '#33454A');
+  const stopColor = s => TAGC[(s.tag||'').trim()] || (typeof DAY_COLORS_HEX!=='undefined' ? (DAY_COLORS_HEX[((s.day||1)-1)%8]||'#3E362C') : '#3E362C');
   const fmtMin = m => m==null ? '—' : (m>=60 ? Math.floor(m/60)+' 小时 '+(m%60)+' 分' : m+' 分');
   const segAt = i => (state && state.segments && state.segments[i]) || null;
 
@@ -5894,9 +5927,9 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         + '<div class="ms-sub">'+n+' 个点位'+(r.updated_at? ' · 更新于 '+String(r.updated_at).slice(0,10):'')+(r.share_token? ' · 已分享':'')+'</div>'
         + '</div><div style="color:#B4BDB4">›</div></div>'
         + (r.share_token? '<button data-revoke="'+esc(r.id)+'" style="flex:0 0 auto;border:1px solid #E7D4CE;background:#fff;color:#B94A3C;border-radius:999px;padding:6px 10px;font-size:11.5px;font-weight:600">撤回分享</button>' : '')
-        + '<button data-more="'+idx+'" style="flex:0 0 auto;border:none;background:none;color:#8A968F;font-size:21px;padding:2px 6px;line-height:1;">⋯</button>'
+        + '<button data-more="'+idx+'" style="flex:0 0 auto;border:none;background:none;color:#9C8D7A;font-size:21px;padding:2px 6px;line-height:1;">⋯</button>'
         + '</div>';
-    }).join('') : ('<div class="ms-card" style="text-align:center;color:#8A968F">还没有路书<br>点右上角「＋ 新建」开始'
+    }).join('') : ('<div class="ms-card" style="text-align:center;color:#9C8D7A">还没有路书<br>点右上角「＋ 新建」开始'
       + (window.__rbDebug ? '<div style="margin-top:14px;font-size:10px;color:#B4BDB4;word-break:break-all">'+esc(JSON.stringify(window.__rbDebug))+'</div>' : '')
       + '</div>');
     $('msListBody').querySelectorAll('[data-open]').forEach(el=>{
@@ -6061,7 +6094,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   function renderTimeline(){
     const st = (state && state.stops) || [];
     if(!st.length){
-      $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">这条路书还没有点位，先加第一个点：'
+      $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C;line-height:1.7">这条路书还没有点位，先加第一个点：'
         + '<button class="ms-btn" data-insert="-1" style="width:100%;margin-top:12px;">＋ 加一个点</button>'
         + '<button class="ms-btn ghost" data-textimport="1" style="width:100%;margin-top:8px;">📋 粘贴文字行程，自动生成</button></div>';
       bindPlanBody();
@@ -6078,35 +6111,35 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       let dk=0, dm=0;
       st.forEach((s,i)=>{ if(st[i+1] && st[i+1].day===day){ const g=segAt(i); if(g){ dk+=g.km||0; dm+=g.min||0; } } });
       html += '<div style="margin-bottom:20px"><div class="ms-row" style="margin-bottom:10px">'
-        + '<div style="width:26px;height:26px;border-radius:8px;background:'+((typeof DAY_COLORS_HEX!=='undefined'&&DAY_COLORS_HEX[(day-1)%8])||'#33454A')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">'+day+'</div>'
+        + '<div style="width:26px;height:26px;border-radius:8px;background:'+((typeof DAY_COLORS_HEX!=='undefined'&&DAY_COLORS_HEX[(day-1)%8])||'#3E362C')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">'+day+'</div>'
         + '<div style="font-size:14px;font-weight:700">第 '+day+' 天</div>'
-        + '<div style="flex:1;height:1px;background:#DDE2D8"></div>'
+        + '<div style="flex:1;height:1px;background:#E9DFC9"></div>'
         + '<div class="ms-sub">'+Math.round(dk)+' km · '+fmtMin(dm)+'</div></div>';
       if(firstStopOverall && !mTag){
-        html += '<div data-insert="-1" style="margin-left:26px;padding:5px 10px;font-size:11.5px;color:#8A968F;display:flex;align-items:center;gap:6px">'
+        html += '<div data-insert="-1" style="margin-left:26px;padding:5px 10px;font-size:11.5px;color:#9C8D7A;display:flex;align-items:center;gap:6px">'
           + '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px dashed #B4BDB4;font-size:12px;line-height:1">＋</span>在最前面插入一个点</div>';
       }
       firstStopOverall = false;
       rows.forEach(function(x){
         const s = x.s, i = x.i, c = stopColor(s), g = segAt(i);
-        html += '<div class="ms-card" data-stop="'+i+'" style="padding:12px 13px;border:1px solid '+((state.currentIndex===i)?'#D8703A':'transparent')+'">'
+        html += '<div class="ms-card" data-stop="'+i+'" style="padding:12px 13px;border:1px solid '+((state.currentIndex===i)?'#C2693F':'transparent')+'">'
           + '<div class="ms-row"><div style="width:22px;height:22px;border-radius:50%;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:0 0 auto">'+(i+1)+'</div>'
           + '<div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.name)
           + (s.tag? ' <span style="font-size:10.5px;font-weight:600;color:'+c+';background:'+c+'18;border-radius:5px;padding:2px 6px">'+esc(s.tag)+'</span>':'')
           + '</div>'+(s.note? '<div class="ms-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.note)+'</div>':'')
-          + '</div><button data-nav="'+i+'" title="导航去下一站" style="flex:0 0 auto;border:none;background:none;color:#8A968F;font-size:17px;padding:4px 6px;cursor:pointer;line-height:1">🧭</button>'
+          + '</div><button data-nav="'+i+'" title="导航去下一站" style="flex:0 0 auto;border:none;background:none;color:#9C8D7A;font-size:17px;padding:4px 6px;cursor:pointer;line-height:1">🧭</button>'
           + '<div style="color:#B4BDB4">›</div></div></div>';
         if(st[i+1] && !mTag){
           html += '<div class="ms-row" style="margin:2px 0 2px 26px;padding:6px 10px 6px 0;gap:8px">'
             + '<div style="width:2px;height:22px;background:#D3DBCB;border-radius:2px;flex:0 0 auto"></div>'
             + '<div data-seg="'+i+'" style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer">'
             + '<div class="ms-sub">'+(g&&g.km? Math.round(g.km)+' km · '+fmtMin(g.min) : '这段还没有路线数据')+'</div>'
-            + '<div style="font-size:11.5px;color:#D8703A;font-weight:600;white-space:nowrap">沿途搜一搜 →</div></div>'
-            + '<button data-insert="'+i+'" title="在这两点之间插入一个点" style="flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px dashed #B4BDB4;background:#fff;color:#8A968F;font-size:14px;line-height:1;cursor:pointer">＋</button>'
+            + '<div style="font-size:11.5px;color:#C2693F;font-weight:600;white-space:nowrap">沿途搜一搜 →</div></div>'
+            + '<button data-insert="'+i+'" title="在这两点之间插入一个点" style="flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px dashed #B4BDB4;background:#fff;color:#9C8D7A;font-size:14px;line-height:1;cursor:pointer">＋</button>'
             + '</div>';
         }
       });
-      html += '<div data-insert="'+(function(){ let idx=-1; st.forEach((s,i)=>{ if(s.day===day) idx=i; }); return idx; })()+'" style="margin-left:26px;padding:8px 10px;font-size:12.5px;color:#8A968F">＋ 在这一天最后加一个点</div></div>';
+      html += '<div data-insert="'+(function(){ let idx=-1; st.forEach((s,i)=>{ if(s.day===day) idx=i; }); return idx; })()+'" style="margin-left:26px;padding:8px 10px;font-size:12.5px;color:#9C8D7A">＋ 在这一天最后加一个点</div></div>';
     });
     $('msPlanBody').innerHTML = html;
     bindPlanBody();
@@ -6116,7 +6149,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     const st = (state && state.stops) || [];
     const pts = st.filter(s=>s.lng!=null && s.lat!=null);
     if(pts.length < 2){
-      $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">点位还没有坐标，地图画不出来。切到电脑版点「重新规划」把坐标解析出来，再回手机版看。</div>';
+      $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C;line-height:1.7">点位还没有坐标，地图画不出来。切到电脑版点「重新规划」把坐标解析出来，再回手机版看。</div>';
       return;
     }
     const W=340, H=440, P=30;
@@ -6237,7 +6270,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
       + '<div class="ms-row"><span style="background:'+c+';color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600">第 '+s.day+' 天 · 第 '+(i+1)+' 站</span>'
       + '<div class="ms-sub" style="flex:1">'+(s.lat!=null? Number(s.lat).toFixed(4)+', '+Number(s.lng).toFixed(4) : '还没有坐标')+'</div>'
       + '<button class="ms-pill" data-close="1">收起</button></div>'
-      + '<input class="ms-in" id="msName" style="border:none;border-bottom:1px solid #DDE2D8;border-radius:0;padding:10px 0;margin-top:10px;font-size:19px;font-weight:700;background:none" value="'+esc(s.name)+'">'
+      + '<input class="ms-in" id="msName" style="border:none;border-bottom:1px solid #E9DFC9;border-radius:0;padding:10px 0;margin-top:10px;font-size:19px;font-weight:700;background:none" value="'+esc(s.name)+'">'
       + '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">'
       + TAGS.map(t=>'<button class="ms-pill'+(s.tag===t?' on':'')+'" data-tagset="'+t+'">'+t+'</button>').join('')+'</div>'
       + '<div id="msColorSlot" style="margin-top:14px"></div>'
@@ -6367,7 +6400,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     body.innerHTML = '<div class="plaza-tabs" id="plazaTabs">'
       + '<button data-pt="routes" class="'+(mPlazaTab==='routes'?'on':'')+'">路书</button>'
       + '<button data-pt="journals" class="'+(mPlazaTab==='journals'?'on':'')+'">游记</button>'
-      + '</div><div id="plazaListArea" class="ms-card" style="color:#8A968F">加载中…</div>';
+      + '</div><div id="plazaListArea" class="ms-card" style="color:#9C8D7A">加载中…</div>';
     // note: plazaListArea starts out as its own card (loading state); once data
     // arrives it's refilled with either plain text (kept inside this same card)
     // or a list of already-card-wrapped rows, so we drop the wrapper's own
@@ -6391,7 +6424,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         + '<div style="font-size:15.5px;font-weight:600">'+esc(r.name||'未命名路书')+(r.is_public?'<span class="plaza-public-badge">公开</span>':'')+'</div>'
         + '<div class="ms-sub">'+(myIds.indexOf(r.id)>=0? '你分享的' : '别人分享的')+(r.updated_at? ' · '+String(r.updated_at).slice(0,10):'')+'</div></div>'
         + '<button class="ms-pill" data-plaza-open="'+esc(r.id)+'" data-token="'+esc(r.share_token||'')+'">打开</button></div></div>').join('')
-        : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场还没有公开的路书。在「我的路书」点 ↗ 分享，勾选「同时发布到路书广场」，它就会出现在这里。</div>';
+        : '<div class="ms-card" style="color:#7D6E5C;line-height:1.7">广场还没有公开的路书。在「我的路书」点 ↗ 分享，勾选「同时发布到路书广场」，它就会出现在这里。</div>';
       area.querySelectorAll('[data-plaza-open]').forEach(el=>el.addEventListener('click', async ()=>{
         const id = el.dataset.plazaOpen, token = el.dataset.token;
         const myIds2 = (window.loadedRoutes||[]).map(r=>r.id);
@@ -6406,7 +6439,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         }
       }));
     }catch(e){
-      area.innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场暂时读不到数据：'+esc(e.message||'未知错误')+'</div>';
+      area.innerHTML = '<div class="ms-card" style="color:#7D6E5C;line-height:1.7">广场暂时读不到数据：'+esc(e.message||'未知错误')+'</div>';
     }
   }
 
@@ -6418,12 +6451,12 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         + '<div style="font-size:15.5px;font-weight:600">'+esc(tl.title||'未命名游记')+'<span class="plaza-public-badge">公开</span></div>'
         + '<div class="ms-sub">来自《'+esc(tl.route_name||'')+'》'+(tl.updated_at? ' · '+String(tl.updated_at).slice(0,10):'')+'</div></div>'
         + '<button class="ms-pill" data-plaza-journal="'+esc(tl.id)+'">阅读</button></div></div>').join('')
-        : '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场还没有公开的游记。写完一篇游记后，点「导出」，勾选「发布到路书广场」，别人就能看到。</div>';
+        : '<div class="ms-card" style="color:#7D6E5C;line-height:1.7">广场还没有公开的游记。写完一篇游记后，点「导出」，勾选「发布到路书广场」，别人就能看到。</div>';
       area.querySelectorAll('[data-plaza-journal]').forEach(el=>el.addEventListener('click', ()=>{
         openPublicTravelogueView(el.dataset.plazaJournal);
       }));
     }catch(e){
-      area.innerHTML = '<div class="ms-card" style="color:#5B6B67;line-height:1.7">广场暂时读不到游记：'+esc(e.message||'未知错误')+'</div>';
+      area.innerHTML = '<div class="ms-card" style="color:#7D6E5C;line-height:1.7">广场暂时读不到游记：'+esc(e.message||'未知错误')+'</div>';
     }
   }
 
@@ -6441,11 +6474,11 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     const pane=document.createElement('div');
     pane.style.cssText='background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:22px 20px calc(env(safe-area-inset-bottom,0px) + 24px);';
     let html = '<div style="font-size:19px;font-weight:700;margin-bottom:2px;">'+esc(row.title||'未命名游记')+'</div>'
-      + '<div style="font-size:12px;color:#5B6B67;margin-bottom:18px;">来自路书《'+esc(row.route_name||'')+'》</div>';
-    if(!entries.length) html += '<div style="color:#5B6B67;">这篇游记还没有内容</div>';
+      + '<div style="font-size:12px;color:#7D6E5C;margin-bottom:18px;">来自路书《'+esc(row.route_name||'')+'》</div>';
+    if(!entries.length) html += '<div style="color:#7D6E5C;">这篇游记还没有内容</div>';
     entries.forEach(en=>{
       if(en.type==='segment'){
-        html += '<div style="font-size:11.5px;color:#5B6B67;margin:10px 0;">↓ '+esc(en.name)+(en.subtitle?'　'+esc(en.subtitle):'')+'</div>';
+        html += '<div style="font-size:11.5px;color:#7D6E5C;margin:10px 0;">↓ '+esc(en.name)+(en.subtitle?'　'+esc(en.subtitle):'')+'</div>';
       } else if(en.type==='point'){
         html += '<div style="font-size:15px;font-weight:700;margin:16px 0 4px;">'+esc(en.name)+'</div>';
       }
@@ -6492,17 +6525,17 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     $('msPlazaAddBtn').style.display='none';
     $('msPlazaPreviewName').textContent = '路书';
     $('msPlazaPreviewMeta').textContent = '';
-    $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#8A968F">加载中…</div>';
+    $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#9C8D7A">加载中…</div>';
     try{
       const { data: rd, error } = await cbDb.rpc('get_shared_route', { token });
       if(error) throw error;
       const row = Array.isArray(rd)? rd[0] : rd;
-      if(!row){ $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#5B6B67">这个分享已失效</div>'; return; }
+      if(!row){ $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C">这个分享已失效</div>'; return; }
       plazaPreviewRow = row;
       renderPlazaPreviewBody(row);
       $('msPlazaAddBtn').style.display='block';
     }catch(e){
-      $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#5B6B67">打开失败：'+esc(e.message||'')+'</div>';
+      $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C">打开失败：'+esc(e.message||'')+'</div>';
     }
   }
   function renderPlazaPreviewBody(row){
@@ -6511,14 +6544,14 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     let km=0; ((row.data&&row.data.segments)||[]).forEach(g=>{ if(g&&g.km) km+=g.km; });
     const days = stops.length ? Math.max.apply(null, stops.map(s=>s.day||1)) : 0;
     $('msPlazaPreviewMeta').textContent = days+' 天 · '+Math.round(km)+' km · '+stops.length+' 个点位';
-    if(!stops.length){ $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#5B6B67">这条路书还没有点位</div>'; return; }
+    if(!stops.length){ $('msPlazaPreviewBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C">这条路书还没有点位</div>'; return; }
     const dayList = [];
     stops.forEach(s=>{ if(dayList.indexOf(s.day)<0) dayList.push(s.day); });
     let html='';
     dayList.forEach(day=>{
       html += '<div style="margin-bottom:18px"><div class="ms-row" style="margin-bottom:10px">'
-        + '<div style="width:24px;height:24px;border-radius:7px;background:'+((typeof DAY_COLORS_HEX!=='undefined'&&DAY_COLORS_HEX[(day-1)%8])||'#33454A')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+day+'</div>'
-        + '<div style="font-size:13.5px;font-weight:700">第 '+day+' 天</div><div style="flex:1;height:1px;background:#DDE2D8"></div></div>';
+        + '<div style="width:24px;height:24px;border-radius:7px;background:'+((typeof DAY_COLORS_HEX!=='undefined'&&DAY_COLORS_HEX[(day-1)%8])||'#3E362C')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+day+'</div>'
+        + '<div style="font-size:13.5px;font-weight:700">第 '+day+' 天</div><div style="flex:1;height:1px;background:#E9DFC9"></div></div>';
       stops.forEach((s,i)=>{
         if(s.day!==day) return;
         html += '<div class="ms-card" style="padding:11px 13px">'
@@ -6569,7 +6602,7 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
     if(currentRouteId){
       const planName = ($('msPlanName') && $('msPlanName').textContent) || '当前路书';
       html += '<div class="ms-card"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">《'+esc(planName)+'》的游记</div>'
-        + '<div id="jhCurList" style="color:#8A968F;font-size:12.5px;">加载中…</div>'
+        + '<div id="jhCurList" style="color:#9C8D7A;font-size:12.5px;">加载中…</div>'
         + '<button class="ms-btn" id="jhNewForCurrent" style="width:100%;margin-top:10px;">＋ 为这条路书新建游记</button></div>';
     }
     html += '<div class="ms-card" id="jhAllEntry" style="cursor:pointer"><div class="ms-row"><div style="flex:1"><div style="font-size:14.5px;font-weight:600">我的游记（全部）</div><div class="ms-sub" id="jhAllSub">汇总所有路书下的游记</div></div><div style="color:#B4BDB4">›</div></div></div>';
@@ -6600,8 +6633,8 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
         const wrap = $('jhCurList');
         if(!wrap) return;
         wrap.innerHTML = (data && data.length) ? data.map(tl=>'<div class="ms-row" data-tl="'+esc(tl.id)+'" style="padding:8px 0;border-top:1px solid #EEF0EA;">'
-          + '<div style="flex:1;min-width:0;cursor:pointer;font-size:13.5px;font-weight:600;color:#1B2A2E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tl-open="'+esc(tl.id)+'">'+esc(tl.title||'未命名游记')+'</div>'
-          + '<button data-tl-rename="'+esc(tl.id)+'" style="flex:0 0 auto;border:none;background:none;color:#8A968F;font-size:15px;padding:4px 6px">✎</button>'
+          + '<div style="flex:1;min-width:0;cursor:pointer;font-size:13.5px;font-weight:600;color:#2D2620;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tl-open="'+esc(tl.id)+'">'+esc(tl.title||'未命名游记')+'</div>'
+          + '<button data-tl-rename="'+esc(tl.id)+'" style="flex:0 0 auto;border:none;background:none;color:#9C8D7A;font-size:15px;padding:4px 6px">✎</button>'
           + '<button data-tl-del="'+esc(tl.id)+'" style="flex:0 0 auto;border:none;background:none;color:#B94A3C;font-size:15px;padding:4px 6px">✕</button>'
           + '</div>').join('')
           : '这条路书还没有游记';
@@ -6690,6 +6723,27 @@ body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px
   };
 
   window.addEventListener('resize', ()=>{ if(!localStorage.getItem('rb_force_view')) applyShell(); });
+  const msPull = $('msPull');
+  if(msPull){
+    let pullStartY=null, pulling=false;
+    const listBody = $('msListBody');
+    listBody.addEventListener('touchstart', e=>{
+      pulling = listBody.scrollTop<=0;
+      pullStartY = pulling ? e.touches[0].clientY : null;
+    }, {passive:true});
+    listBody.addEventListener('touchmove', e=>{
+      if(!pulling || pullStartY==null) return;
+      if(e.touches[0].clientY - pullStartY > 50) msPull.classList.add('show');
+    }, {passive:true});
+    listBody.addEventListener('touchend', async ()=>{
+      if(msPull.classList.contains('show')){
+        try{ if(window.loadRouteList) await loadRouteList(); }catch(e){}
+        renderList();
+      }
+      msPull.classList.remove('show'); pulling=false; pullStartY=null;
+    });
+  }
+
   applyShell();
 })();
 </script>
