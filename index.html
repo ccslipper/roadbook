@@ -5269,6 +5269,47 @@ async function exportTlPdfDirect(btn){
   }
 }
 
+/* 长图导出——生成的是普通 JPEG 图片，微信/朋友圈的分享面板对图片的兼容
+   远比 PDF 稳，是"分享到微信"最不容易翻车的一条路。复用 exportTlPdfDirect
+   同一套离屏截图逻辑，只是最后不转 PDF，直接把截图本身当文件分享/下载。 */
+async function exportTlImageDirect(btn){
+  const oldText = btn.textContent;
+  btn.disabled = true; btn.textContent = '生成中…';
+  let offstage = null;
+  try{
+    const ok = await ensurePdfLibs();
+    if(!ok) throw new Error('组件加载失败，可能是网络问题，稍后重试');
+    if(!currentTravelogue || !(currentTravelogue.data && currentTravelogue.data.entries && currentTravelogue.data.entries.some(e=>e.included))){
+      throw new Error('先在左边勾选要导出的内容');
+    }
+    offstage = document.createElement('div');
+    offstage.style.cssText = 'position:fixed;left:-99999px;top:0;width:560px;padding:20px;background:#fff;z-index:-1;';
+    offstage.appendChild(buildTlDocElement());
+    document.body.appendChild(offstage);
+    await waitForImagesLoaded(offstage);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const docEl = offstage.querySelector('.tl-doc');
+    const canvas = await html2canvas(docEl, { scale:2, useCORS:true, backgroundColor:'#ffffff' });
+    if(!canvas || !canvas.width || !canvas.height){
+      throw new Error('截图失败（画布为空），换用别的导出方式试试');
+    }
+    const blob = await new Promise(res=> canvas.toBlob(res, 'image/jpeg', 0.92));
+    const filename = (currentTravelogue.title||'游记') + '.jpg';
+    const result = await shareOrDownloadBlob(blob, filename, 'image/jpeg',
+      currentTravelogue.title||'游记', '来自路书《'+(currentTravelogue.route_name||'')+'》');
+    if(result === 'shared'){
+      toast('已打开分享面板，选微信或"存储到手机"都行');
+    }else if(result === 'downloaded'){
+      toast('长图已下载，去手机的相册/下载目录里找');
+    }
+  }catch(e){
+    toast('导出失败：'+(e.message||e));
+  }finally{
+    if(offstage && offstage.parentNode) offstage.parentNode.removeChild(offstage);
+    btn.disabled = false; btn.textContent = oldText;
+  }
+}
+
 /* 导出 Word：走的是"HTML 伪装成 .doc"这个老办法——Word / WPS 打开这种文件
    会按 HTML 渲染再转成文档格式，不是真正的 .docx 二进制，但胜在不用引入任何
    额外的库、图文样式基本保得住，对一篇游记来说够用了。 */
@@ -5387,6 +5428,12 @@ function showTlExportPanel(){
   pdfDirectBtn.addEventListener('click', ()=> exportTlPdfDirect(pdfDirectBtn));
   panel.appendChild(pdfDirectBtn);
 
+  const imgDirectBtn=document.createElement('button');
+  imgDirectBtn.className='btn small'; imgDirectBtn.style.cssText='width:100%;margin-bottom:8px;background:#3E8E7E;';
+  imgDirectBtn.textContent='🖼 导出长图（发朋友圈/微信最稳）';
+  imgDirectBtn.addEventListener('click', ()=> exportTlImageDirect(imgDirectBtn));
+  panel.appendChild(imgDirectBtn);
+
   const wordBtn=document.createElement('button');
   wordBtn.className='btn ghost small'; wordBtn.style.cssText='width:100%;margin-bottom:8px;';
   wordBtn.textContent='📝 导出 Word（.doc，可分享/可再编辑排版）';
@@ -5432,7 +5479,17 @@ function showTlExportPanel(){
     grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:6px;';
     allPhotos.forEach((src,i)=>{
       const a=document.createElement('a');
-      a.href=src; a.download='游记图片'+(i+1)+'.jpg';
+      a.href='#';
+      a.addEventListener('click', async (e)=>{
+        e.preventDefault();
+        try{
+          const resp = await fetch(src);
+          const blob = await resp.blob();
+          const result = await shareOrDownloadBlob(blob, '游记图片'+(i+1)+'.jpg', blob.type||'image/jpeg', currentTravelogue.title||'游记', '');
+          if(result==='shared') toast('已打开分享面板，选微信或"存储到手机"都行');
+          else if(result==='downloaded') toast('图片已下载');
+        }catch(err){ toast('保存失败：'+(err.message||'')); }
+      });
       const img=document.createElement('img');
       img.src=src; img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;';
       a.appendChild(img);
@@ -5743,7 +5800,12 @@ body.ms-recommend-open #recommendPanel-head{padding-top:calc(env(safe-area-inset
 body.ms-recommend-open #drawer-head{padding-top:calc(env(safe-area-inset-top,0px) + 16px);gap:12px}
 body.ms-recommend-open #drawer-collapse{display:none}
 body.ms-recommend-open #recommendPanel-close,body.ms-recommend-open #drawer-close{order:-1;width:38px;height:38px;min-width:38px;border-radius:50%;background:#F3ECDE;font-size:0;flex:0 0 auto;position:relative}
-body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #drawer-close::before{content:'‹';font-size:22px;color:#2D2620;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}</style>
+body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #drawer-close::before{content:'‹';font-size:22px;color:#2D2620;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+body.ms-map-open #screen-editor{display:block!important}
+body.ms-map-open #screen-editor>*:not(#main){display:none!important}
+body.ms-map-open #main>*:not(#mapwrap){display:none!important}
+body.ms-map-open #mapwrap{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;z-index:9400!important;border-left:none!important}
+body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder,body.ms-map-open #mapwrap>#recalcBanner,body.ms-map-open #mapwrap>#progressLine,body.ms-map-open #mapwrap>#connError,body.ms-map-open #mapwrap>#drawer,body.ms-map-open #mapwrap>#recommendPanel{display:none!important}</style>
 
 <div id="mshell">
   <div class="ms-scr" id="ms-list">
@@ -6164,38 +6226,31 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
   }
 
   function renderMap(){
-    const st = (state && state.stops) || [];
-    const pts = st.filter(s=>s.lng!=null && s.lat!=null);
-    if(pts.length < 2){
-      $('msPlanBody').innerHTML = '<div class="ms-card" style="color:#7D6E5C;line-height:1.7">点位还没有坐标，地图画不出来。切到电脑版点「重新规划」把坐标解析出来，再回手机版看。</div>';
-      return;
+    showMobileMap();
+  }
+
+  /* 手机端“地图”视图——不再自己画一张静态 SVG 缩略图，而是直接把桌面那张真实、可缩放拖动的高德地图整页提到前台（和“沿途推荐”弹层用的同一个 body 类技巧），自带标准/卫星切换（#basemapToggle）。 */
+  async function showMobileMap(){
+    document.body.classList.add('ms-map-open');
+    let backBtn = document.getElementById('msMapBack');
+    if(!backBtn){
+      backBtn = document.createElement('button');
+      backBtn.id = 'msMapBack';
+      backBtn.textContent = '‹';
+      backBtn.style.cssText = 'position:fixed;left:14px;top:calc(env(safe-area-inset-top,0px) + 16px);z-index:9500;width:38px;height:38px;border-radius:50%;border:none;background:#F3ECDE;color:#2D2620;font-size:20px;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 4px 14px rgba(45,38,32,.25);';
+      backBtn.addEventListener('click', ()=>{
+        document.body.classList.remove('ms-map-open');
+        mView = 'timeline';
+        $('msViewTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v==='timeline'));
+        renderPlan();
+      });
+      const wrap = document.getElementById('mapwrap');
+      if(wrap) wrap.appendChild(backBtn);
     }
-    const W=340, H=440, P=30;
-    const lngs=pts.map(p=>p.lng), lats=pts.map(p=>p.lat);
-    const x0=Math.min.apply(null,lngs), x1=Math.max.apply(null,lngs);
-    const y0=Math.min.apply(null,lats), y1=Math.max.apply(null,lats);
-    const k=Math.min((W-P*2)/Math.max(x1-x0,1e-4),(H-P*2)/Math.max(y1-y0,1e-4));
-    const ox=P+((W-P*2)-(x1-x0)*k)/2, oy=P+((H-P*2)-(y1-y0)*k)/2;
-    const px=s=>ox+(s.lng-x0)*k, py=s=>oy+(y1-s.lat)*k;
-    let g='';
-    st.forEach((s,i)=>{
-      const n=st[i+1];
-      if(n && s.lng!=null && n.lng!=null){
-        g += '<g data-seg="'+i+'" style="cursor:pointer"><line x1="'+px(s)+'" y1="'+py(s)+'" x2="'+px(n)+'" y2="'+py(n)+'" stroke="rgba(0,0,0,0)" stroke-width="18"/>'
-          + '<line x1="'+px(s)+'" y1="'+py(s)+'" x2="'+px(n)+'" y2="'+py(n)+'" stroke="'+segColor(i)+'" stroke-width="3" stroke-linecap="round" opacity="'+(mTag?0.2:0.85)+'"/></g>';
-      }
-    });
-    st.forEach((s,i)=>{
-      if(s.lng==null) return;
-      const on = !mTag || (s.tag||'').trim()===mTag;
-      g += '<g data-stop="'+i+'" style="cursor:pointer" opacity="'+(on?1:0.18)+'">'
-        + '<circle cx="'+px(s)+'" cy="'+py(s)+'" r="'+(state.currentIndex===i?12:9)+'" fill="'+stopColor(s)+'" stroke="#fff" stroke-width="2"/>'
-        + '<text x="'+px(s)+'" y="'+(py(s)+3.2)+'" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">'+(i+1)+'</text></g>';
-    });
-    $('msPlanBody').innerHTML = '<div class="ms-card" style="padding:8px">'
-      + '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;background:#E6EBE0;border-radius:12px">'+g+'</svg>'
-      + '<div class="ms-sub" style="padding:8px 6px 2px">点圆点看详情 · 点线段搜这一段的景点美食充电</div></div>';
-    bindPlanBody();
+    const ok = (typeof ensureAmapReady==='function') ? await ensureAmapReady() : !!window.AMap;
+    if(!ok){ toast('高德地图连接失败，检查网络后重试'); document.body.classList.remove('ms-map-open'); return; }
+    if(typeof window.renderMap==='function') window.renderMap();
+    setTimeout(()=>{ if(typeof map!=='undefined' && map && map.setFitView) map.setFitView(); }, 250);
   }
 
   function bindPlanBody(){
