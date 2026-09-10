@@ -6294,17 +6294,20 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
     const st = (state && state.stops) || [];
     st.forEach((s,i)=>{
       if(s.lng==null) return;
+      const on = !mTag || (s.tag||'').trim()===mTag;
       const el = document.createElement('div');
       const color = stopColor(s);
-      el.style.cssText = 'width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:'+color+';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;';
+      el.style.cssText = 'width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:'+color+';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:'+(on?1:0.25)+';';
       const num=document.createElement('span'); num.textContent=(i+1); num.style.cssText='transform:rotate(45deg);color:#fff;font-size:10px;font-weight:700;';
       el.appendChild(num);
       const marker = new AMap.Marker({ position:[s.lng,s.lat], content:el, offset:new AMap.Pixel(-11,-22), map:mMap });
+      marker.on('click', ()=>{ if(typeof openSheet==='function') openSheet(i); });
       mMarkers.push(marker);
     });
     (state.segments||[]).forEach((seg,i)=>{
       if(!seg || !seg.path || !seg.path.length) return;
-      const pl = new AMap.Polyline({ path:seg.path, strokeColor:segColor(i), strokeWeight:5, strokeOpacity:.85, map:mMap });
+      const pl = new AMap.Polyline({ path:seg.path, strokeColor:segColor(i), strokeWeight:5, strokeOpacity:(mTag?0.2:0.85), cursor:'pointer', map:mMap });
+      pl.on('click', ()=>{ if(typeof openSegmentPanel==='function') openSegmentPanel(i); });
       mPolylines.push(pl);
     });
     if(mMarkers.length) mMap.setFitView(mMarkers.map(m=>m), false, [20,20,20,20]);
