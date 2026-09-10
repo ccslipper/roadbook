@@ -6379,6 +6379,7 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
       + '<div class="ms-sub" style="flex:1">'+(s.lat!=null? Number(s.lat).toFixed(4)+', '+Number(s.lng).toFixed(4) : '还没有坐标')+'</div>'
       + '<button class="ms-pill" data-close="1">收起</button></div>'
       + '<input class="ms-in" id="msName" style="border:none;border-bottom:1px solid #E9DFC9;border-radius:0;padding:10px 0;margin-top:10px;font-size:19px;font-weight:700;background:none" value="'+esc(s.name)+'">'
+      + '<div id="msPlaceSlot" style="margin-top:10px"></div>'
       + '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">'
       + TAGS.map(t=>'<button class="ms-pill'+(s.tag===t?' on':'')+'" data-tagset="'+t+'">'+t+'</button>').join('')+'</div>'
       + '<div id="msColorSlot" style="margin-top:14px"></div>'
@@ -6391,9 +6392,28 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
       + (state.stops[i+1] ? '<button class="ms-btn ghost" data-seg2="'+i+'" style="flex:1">沿途搜索</button>' : '')
       + '<button class="ms-btn ghost" data-del="1" style="color:#B94A3C;border-color:#E7D4CE">删除</button></div>';
     $('msSheet').classList.add('on');
+    if(typeof ensureAmapReady==='function') ensureAmapReady();
     const pane = $('msSheetPane');
     pane.querySelector('#msName').addEventListener('change', e=>{ s.name = e.target.value.trim() || s.name; saveState(); renderPlan(); });
     pane.querySelector('#msNote').addEventListener('change', e=>{ s.note = e.target.value; saveState(); });
+    const placeSlot = pane.querySelector('#msPlaceSlot');
+    if(placeSlot && typeof placeSearchField==='function'){
+      placeSlot.appendChild(placeSearchField(
+        ()=> s.lng!=null? (s.name+'（'+Number(s.lat).toFixed(5)+', '+Number(s.lng).toFixed(5)+'）') : '还没有坐标',
+        s.name,
+        (picked)=>{
+          s.lng = picked.lng; s.lat = picked.lat;
+          if(picked.name) s.name = picked.name;
+          s.geocodeFailed = false;
+          if(typeof markDirty==='function') markDirty();
+          saveState();
+          const nameInput = pane.querySelector('#msName');
+          if(nameInput) nameInput.value = s.name;
+          renderPlan();
+          if(typeof autoRecalcRoute==='function') autoRecalcRoute();
+        }
+      ));
+    }
     pane.querySelectorAll('[data-tagset]').forEach(b=>b.addEventListener('click', ()=>{
       s.tag = (s.tag===b.dataset.tagset) ? '' : b.dataset.tagset;
       saveState(); openSheet(i); renderPlan();
