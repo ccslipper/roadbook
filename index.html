@@ -5863,7 +5863,9 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
         </div>
         <button class="ms-pill" id="msRideBtn">开始行程</button>
         <button class="ms-pill" id="msShareBtn">分享</button>
+        <button class="ms-pill" id="msOfflineBtn" style="padding:8px 10px">离线</button>
       </div>
+      <div style="text-align:right;margin-top:6px"><a href="#" id="msOfflinePickLink" style="font-size:11px;color:#7D6E5C;text-decoration:underline;">只选几天导出离线路书</a></div>
       <div class="ms-tabs" id="msViewTabs">
         <button data-v="timeline" class="on">时间轴</button>
         <button data-v="map">地图</button>
@@ -6524,6 +6526,130 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
     if(!route){ toast('请先回到路书列表重新打开这条路书再分享'); return; }
     const dummyBtn = document.createElement('button');
     await shareRoute(route, dummyBtn);
+  });
+
+  /* ---------- 离线路书：导出成一份不联网也能打开的自包含 HTML 快照 ----------
+     高德"离线地图包"是高德地图App自己的能力，网页 JS API 没有接口能触发下载，
+     这是官方接口边界，绕不过去。这里做网页能做、且对"出门没网"最实际有效的事：
+     把点位名/备注/坐标/照片打包成一份离线也能打开的文件，并把这次行程经过的
+     城市列出来，方便出发前手动去高德地图App里下载对应的离线包；每个点位仍保留
+     "打开高德导航"链接——高德App一旦装好且提前下载过当地离线包，即使那一刻手机
+     没网，App 内部的导航依然能用它自己的离线数据继续工作，不依赖这份网页文件。 */
+  async function collectCitiesForStops(stops){
+    const cities = [];
+    const ok = (typeof ensureAmapReady==='function') ? await ensureAmapReady() : !!window.AMap;
+    if(!ok || typeof geocoder==='undefined' || !geocoder) return cities;
+    const seen = new Set();
+    for(const s of stops){
+      if(s.lng==null) continue;
+      try{
+        const city = await new Promise(resolve=>{
+          geocoder.getAddress([s.lng, s.lat], (status, result)=>{
+            if(status==='complete' && result.regeocode){
+              const ac = result.regeocode.addressComponent;
+              resolve((ac.city && ac.city.length ? ac.city : ac.province) || '');
+            } else resolve('');
+          });
+        });
+        if(city && !seen.has(city)){ seen.add(city); cities.push(city); }
+      }catch(e){}
+    }
+    return cities;
+  }
+  function buildOfflineRoadbookHtml(routeName, allStops, includeIdx, cities){
+    const includeSet = new Set(includeIdx);
+    let totalKm=0, totalMin=0;
+    includeIdx.forEach(i=>{
+      if(includeSet.has(i+1)){ const g=state.segments[i]; if(g && g.km){ totalKm+=g.km; totalMin+=g.min||0; } }
+    });
+    const days=[]; includeIdx.forEach(i=>{ const d=allStops[i].day; if(days.indexOf(d)<0) days.push(d); });
+    let body='';
+    days.forEach(day=>{
+      body += '<div class="day-h" style="background:'+colorFor(day)+'">第 '+day+' 天</div>';
+      includeIdx.forEach(i=>{
+        const s = allStops[i];
+        if(s.day!==day) return;
+        const c = stopColor(s);
+        body += '<div class="stop">'
+          + '<div class="stop-h"><span class="dot" style="background:'+c+'">'+(i+1)+'</span>'
+          + '<span class="nm">'+escapeHtmlFull(s.name)+'</span>'
+          + (s.tag? '<span class="tag" style="color:'+c+';background:'+c+'18">'+escapeHtmlFull(s.tag)+'</span>':'')
+          + '</div>'
+          + (s.note? '<div class="note">'+escapeHtmlFull(s.note).replace(/\n/g,'<br>')+'</div>':'')
+          + (s.lng!=null
+              ? '<div class="coord">坐标：'+Number(s.lat).toFixed(5)+', '+Number(s.lng).toFixed(5)
+                + ' · <a href="https://uri.amap.com/navigation?to='+s.lng+','+s.lat+','+encodeURIComponent(s.name)+'&mode=car&policy=1&src=roadbook&callnative=1">打开高德导航</a></div>'
+              : '<div class="coord">还没有坐标</div>')
+          + (s.photo? '<img class="photo" src="'+s.photo+'">':'')
+          + '</div>';
+        if(includeSet.has(i+1)){
+          const g = state.segments[i];
+          body += '<div class="seg">↓ '+(g && g.km!=null ? Math.round(g.km)+' 公里 · 约'+fmtMin(g.min) : '这段还没有路线数据')+'</div>';
+        }
+      });
+    });
+    const cityHtml = cities.length
+      ? '<div class="citybox"><b>出发前建议在高德地图App里下载这些城市的离线地图包：</b><br>'+cities.map(c=>escapeHtmlFull(c)).join('、')+'</div>'
+      : '<div class="citybox">没能自动识别城市（可能是坐标缺失或当时网络不好），出发前可以手动在高德地图App里按经过的省份下载离线地图包。</div>';
+    return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<title>'+escapeHtmlFull(routeName)+' · 离线路书</title><style>'
+      + 'body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#F3ECDE;color:#2D2620;margin:0;padding:20px 16px 60px;}'
+      + '.wrap{max-width:640px;margin:0 auto;}h1{font-size:20px;margin:0 0 4px;}'
+      + '.sub{font-size:12.5px;color:#8C7C68;margin-bottom:16px;line-height:1.6;}'
+      + '.citybox{background:#fff;border-radius:12px;padding:14px 16px;font-size:12.5px;line-height:1.7;margin-bottom:18px;box-shadow:0 2px 10px rgba(45,38,32,.06);}'
+      + '.day-h{color:#fff;font-size:13px;font-weight:700;padding:6px 12px;border-radius:8px;display:inline-block;margin:18px 0 10px;}'
+      + '.stop{background:#fff;border-radius:14px;padding:13px 15px;margin-bottom:8px;box-shadow:0 2px 10px rgba(45,38,32,.05);}'
+      + '.stop-h{display:flex;align-items:center;gap:8px;}'
+      + '.dot{width:22px;height:22px;border-radius:50%;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}'
+      + '.nm{font-size:15px;font-weight:700;}.tag{font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 6px;}'
+      + '.note{font-size:12.5px;color:#5B6B67;margin-top:6px;line-height:1.6;}'
+      + '.coord{font-size:11.5px;color:#8C7C68;margin-top:6px;}.coord a{color:#C2693F;font-weight:600;text-decoration:none;}'
+      + '.photo{width:100%;max-height:260px;object-fit:cover;border-radius:10px;margin-top:8px;display:block;}'
+      + '.seg{font-size:11.5px;color:#8C7C68;padding:4px 0 4px 30px;}'
+      + '</style></head><body><div class=\"wrap\">'
+      + '<h1>'+escapeHtmlFull(routeName)+'</h1>'
+      + '<div class=\"sub\">离线路书 · 共 '+includeIdx.length+' 个点位'+(totalKm? ' · 约 '+Math.round(totalKm)+' 公里 · '+fmtMin(totalMin):'')+' · 生成于 '+new Date().toLocaleDateString()+'</div>'
+      + cityHtml + body
+      + '<div class=\"sub\" style=\"margin-top:20px;\">这是离线快照，不联网也能打开查看；点"打开高德导航"需要手机已安装高德地图App（若已提前下载对应城市的离线地图包，没有网络也能正常导航）。</div>'
+      + '</div></body></html>';
+  }
+  async function exportOfflineRoadbook(daysFilter){
+    const btn = $('msOfflineBtn');
+    const oldText = btn.textContent;
+    btn.disabled = true; btn.textContent = '生成中…';
+    try{
+      const allStops = state.stops || [];
+      const includeIdx = allStops.map((s,i)=> (!daysFilter || daysFilter.includes(s.day)) ? i : -1).filter(i=>i>=0);
+      if(!includeIdx.length){ toast('没有可导出的点位'); return; }
+      const routeName = ($('msPlanName') && $('msPlanName').textContent) || '路书';
+      const cities = await collectCitiesForStops(includeIdx.map(i=>allStops[i]));
+      const html = buildOfflineRoadbookHtml(routeName, allStops, includeIdx, cities);
+      const blob = new Blob([html], { type:'text/html' });
+      const filename = routeName + '-离线路书.html';
+      const result = await shareOrDownloadBlob(blob, filename, 'text/html', routeName, '离线路书，不联网也能打开');
+      if(result==='shared') toast('已打开分享面板，选"存储到手机"保存下来，出发前打开确认一下');
+      else if(result==='downloaded') toast('离线路书已保存，出发前存到手机里，没网也能打开查看');
+    }catch(e){
+      toast('生成失败：'+(e.message||''));
+    }finally{
+      btn.disabled = false; btn.textContent = oldText;
+    }
+  }
+  $('msOfflineBtn').addEventListener('click', ()=> exportOfflineRoadbook(null));
+  $('msOfflinePickLink').addEventListener('click', (e)=>{
+    e.preventDefault();
+    const days=[]; (state.stops||[]).forEach(s=>{ if(days.indexOf(s.day)<0) days.push(s.day); });
+    if(!days.length){ toast('这条路书还没有点位'); return; }
+    $('msSheetPane').innerHTML = '<div class="ms-grab"></div><div style="font-size:16px;font-weight:700;margin-bottom:10px">选择要导出的天数</div>'
+      + days.map(d=>'<label style="display:flex;align-items:center;gap:10px;padding:9px 0;font-size:14px"><input type="checkbox" class="ms-day-pick" value="'+d+'" checked style="width:18px;height:18px">第 '+d+' 天</label>').join('')
+      + '<button class="ms-btn" id="msOfflinePickGo" style="width:100%;margin-top:14px">导出选中的天</button>';
+    $('msSheet').classList.add('on');
+    $('msOfflinePickGo').addEventListener('click', ()=>{
+      const picked = Array.from(document.querySelectorAll('.ms-day-pick:checked')).map(x=>+x.value);
+      if(!picked.length){ toast('至少选一天'); return; }
+      closeSheet();
+      exportOfflineRoadbook(picked);
+    });
   });
 
   /* ---------- 广场：路书 + 游记两个子 tab ----------
