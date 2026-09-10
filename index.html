@@ -5191,6 +5191,17 @@ function waitForImagesLoaded(root){
    自己的"下载管理"接管，导致弹出来的"保存到"只列出了网盘类 App。
    支持 Web Share API（文件分享）的浏览器优先走分享面板；不支持的老浏览器/桌面端
    自动退回原来的直接下载。用户在分享面板里手动取消，不当成失败，安静收场。 */
+/* 直接保存到本机，不经过系统分享面板——用于 PDF：Android 上给 PDF 走分享
+   面板时，弹出来的目标 App 列表经常只有网盘/文件管理类应用（跟 mimeType
+   有关，不受我们控制），体验等于没保存成功。<a download> 这条路由浏览器
+   自己的下载管理接管，会直接存进手机的下载目录/相册，不会弹选择面板。 */
+function downloadBlobDirect(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 4000);
+}
 async function shareOrDownloadBlob(blob, filename, mimeType, shareTitle, shareText){
   try{
     if(navigator.canShare){
@@ -5254,13 +5265,8 @@ async function exportTlPdfDirect(btn){
     }
     const filename = (currentTravelogue.title||'游记') + '.pdf';
     const pdfBlob = pdf.output('blob');
-    const result = await shareOrDownloadBlob(pdfBlob, filename, 'application/pdf',
-      currentTravelogue.title||'游记', '来自路书《'+(currentTravelogue.route_name||'')+'》');
-    if(result === 'shared'){
-      toast('已打开分享面板，选微信或"存储到手机"都行');
-    }else if(result === 'downloaded'){
-      toast('PDF 已下载，去手机的"文件"App或下载目录里找');
-    }
+    downloadBlobDirect(pdfBlob, filename);
+    toast('PDF 已保存到手机，去相册/下载目录里找（直接保存，不弹分享面板）');
   }catch(e){
     toast('导出失败：'+(e.message||e));
   }finally{
@@ -5804,7 +5810,7 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
 body.ms-map-open #screen-editor{display:block!important}
 body.ms-map-open #screen-editor>*:not(#main){display:none!important}
 body.ms-map-open #main>*:not(#mapwrap){display:none!important}
-body.ms-map-open #mapwrap{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;z-index:9400!important;border-left:none!important}
+body.ms-map-open #mapwrap{position:fixed!important;border-left:none!important;overflow:hidden}
 body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder,body.ms-map-open #mapwrap>#recalcBanner,body.ms-map-open #mapwrap>#progressLine,body.ms-map-open #mapwrap>#connError,body.ms-map-open #mapwrap>#drawer,body.ms-map-open #mapwrap>#recommendPanel{display:none!important}</style>
 
 <div id="mshell">
@@ -5956,6 +5962,7 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
 
   function goScreen(s){
     mScreen = s;
+    if(s!=='plan' && typeof hideMobileMap==='function') hideMobileMap();
     ['list','plan','plaza','journal','me','plaza-preview'].forEach(k=>{
       const el = $('ms-'+k); if(el) el.classList.toggle('on', k===s);
     });
@@ -6164,7 +6171,7 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
       $('msRelayNext').textContent = st[ci+1] ? st[ci+1].name : '已经是最后一站';
     }
     if(mView==='map') renderMap();
-    else renderTimeline();
+    else { hideMobileMap(); renderTimeline(); }
   }
 
   function renderTimeline(){
@@ -6229,28 +6236,40 @@ body.ms-map-open #mapwrap>#nextStopBar,body.ms-map-open #mapwrap>#mapPlaceholder
     showMobileMap();
   }
 
-  /* 手机端“地图”视图——不再自己画一张静态 SVG 缩略图，而是直接把桌面那张真实、可缩放拖动的高德地图整页提到前台（和“沿途推荐”弹层用的同一个 body 类技巧），自带标准/卫星切换（#basemapToggle）。 */
+  /* 手机端“地图”视图——在原本静态缩略图的位置上换上真实的、可双指缩放拖动的高德地图，但仍然待在原来那个圆角框里（不做整页接管）——图块 #mapwrap 本体不搬家，只是用 position:fixed 把它数据对齐到一个占位块 #msMapSlot 的屏幕坐标上。 */
+  let __mapResizeHandler = null;
   async function showMobileMap(){
+    $('msPlanBody').innerHTML = '<div id="msMapSlot" style="position:relative;width:100%;height:min(58vh,460px);border-radius:14px;overflow:hidden;background:#E6EBE0"></div>'
+      + '<div class="ms-sub" style="padding:10px 6px 2px">可双指缩放拖动查看，右下角切换标准/卫星</div>';
     document.body.classList.add('ms-map-open');
-    let backBtn = document.getElementById('msMapBack');
-    if(!backBtn){
-      backBtn = document.createElement('button');
-      backBtn.id = 'msMapBack';
-      backBtn.textContent = '‹';
-      backBtn.style.cssText = 'position:fixed;left:14px;top:calc(env(safe-area-inset-top,0px) + 16px);z-index:9500;width:38px;height:38px;border-radius:50%;border:none;background:#F3ECDE;color:#2D2620;font-size:20px;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 4px 14px rgba(45,38,32,.25);';
-      backBtn.addEventListener('click', ()=>{
-        document.body.classList.remove('ms-map-open');
-        mView = 'timeline';
-        $('msViewTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v==='timeline'));
-        renderPlan();
-      });
-      const wrap = document.getElementById('mapwrap');
-      if(wrap) wrap.appendChild(backBtn);
-    }
     const ok = (typeof ensureAmapReady==='function') ? await ensureAmapReady() : !!window.AMap;
-    if(!ok){ toast('高德地图连接失败，检查网络后重试'); document.body.classList.remove('ms-map-open'); return; }
+    if(!ok){ toast('高德地图连接失败，检查网络后重试'); hideMobileMap(); return; }
     if(typeof window.renderMap==='function') window.renderMap();
-    setTimeout(()=>{ if(typeof map!=='undefined' && map && map.setFitView) map.setFitView(); }, 250);
+    positionEmbeddedMap();
+    setTimeout(()=>{ if(typeof map!=='undefined' && map){ if(map.resize) map.resize(); if(map.setFitView) map.setFitView(); } positionEmbeddedMap(); }, 260);
+    if(!__mapResizeHandler){
+      __mapResizeHandler = ()=> positionEmbeddedMap();
+      window.addEventListener('resize', __mapResizeHandler);
+    }
+  }
+  function positionEmbeddedMap(){
+    const slot = document.getElementById('msMapSlot');
+    const wrap = document.getElementById('mapwrap');
+    if(!slot || !wrap || !document.body.classList.contains('ms-map-open')) return;
+    const r = slot.getBoundingClientRect();
+    wrap.style.position='fixed';
+    wrap.style.left=r.left+'px'; wrap.style.top=r.top+'px';
+    wrap.style.width=r.width+'px'; wrap.style.height=r.height+'px';
+    wrap.style.borderRadius='14px';
+    wrap.style.zIndex='9400';
+    if(typeof map!=='undefined' && map && map.resize) map.resize();
+  }
+  function hideMobileMap(){
+    if(!document.body.classList.contains('ms-map-open')) return;
+    document.body.classList.remove('ms-map-open');
+    const wrap = document.getElementById('mapwrap');
+    if(wrap){ wrap.style.position=''; wrap.style.left=''; wrap.style.top=''; wrap.style.width=''; wrap.style.height=''; wrap.style.borderRadius=''; wrap.style.zIndex=''; }
+    if(__mapResizeHandler){ window.removeEventListener('resize', __mapResizeHandler); __mapResizeHandler=null; }
   }
 
   function bindPlanBody(){
