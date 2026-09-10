@@ -5666,8 +5666,12 @@ body.mobile-on>.app-screen{display:none!important}
 body.mobile-on #screen-profile.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important;animation:msSlideIn .22s ease-out}
 body.mobile-on #screen-travelogue-list.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important;animation:msSlideIn .22s ease-out}
 body.mobile-on #screen-travelogue.active{display:flex!important;flex-direction:column!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;height:auto!important;z-index:9500!important;overflow-y:auto!important;animation:msSlideIn .22s ease-out}
-body.mobile-on #tll-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important}
-body.mobile-on #tl-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important;flex-wrap:wrap}
+body.mobile-on #tll-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important;background:#fff!important;color:#2D2620!important;box-shadow:0 2px 14px rgba(45,38,32,.06)}
+body.mobile-on #tll-topbar h1{color:#2D2620}
+body.mobile-on #goRouteListBtn,body.mobile-on #goProfileBtn2,body.mobile-on #logoutBtn3{display:none!important}
+body.mobile-on #tl-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important;flex-wrap:wrap;background:#fff!important;color:#2D2620!important;box-shadow:0 2px 14px rgba(45,38,32,.06)}
+body.mobile-on #tlBackBtn{color:#2D2620!important}
+body.mobile-on #tlTitleInput{color:#2D2620!important;background:#FBF5EA!important;border-color:#E9DFC9!important}
 body.mobile-on #tlTitleInput{width:100%;max-width:none;order:3;margin-top:6px}
 body.mobile-on #tl-main{flex-direction:column}
 body.mobile-on #tl-editor-col{width:100%;flex:1 1 auto;border-right:none}
@@ -5721,7 +5725,9 @@ body.mobile-on #tl-preview-col{display:none}
 .ms-pull.show{height:44px}
 .ms-pull .ms-spin{width:14px;height:14px;border-radius:50%;border:2px solid #E9DFC9;border-top-color:#C2693F;animation:msSpin .6s linear infinite}
 body.mobile-on #backFromProfileBtn{width:38px!important;height:38px!important;min-width:38px;border-radius:50%;background:#F3ECDE!important;color:#2D2620!important;font-size:19px!important;display:flex;align-items:center;justify-content:center;padding:0!important}
-body.mobile-on #profile-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important;background:#3E362C!important}
+body.mobile-on #profile-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)!important;background:#fff!important;color:#2D2620!important;box-shadow:0 2px 14px rgba(45,38,32,.06)}
+body.mobile-on #profile-topbar h1{color:#2D2620}
+body.mobile-on #logoutBtn2{display:none!important}
 body.ms-recommend-open #screen-editor{display:block!important}
 /* #mapwrap 其实不是 #screen-editor 的直接子元素，中间还隔着 #main 这层——
    之前这里只放过了 #mapwrap 自己，#main 作为它的父级被下面这条规则连坐隐藏
@@ -6176,7 +6182,7 @@ body.ms-recommend-open #recommendPanel-close::before,body.ms-recommend-open #dra
       const n=st[i+1];
       if(n && s.lng!=null && n.lng!=null){
         g += '<g data-seg="'+i+'" style="cursor:pointer"><line x1="'+px(s)+'" y1="'+py(s)+'" x2="'+px(n)+'" y2="'+py(n)+'" stroke="rgba(0,0,0,0)" stroke-width="18"/>'
-          + '<line x1="'+px(s)+'" y1="'+py(s)+'" x2="'+px(n)+'" y2="'+py(n)+'" stroke="'+stopColor(n)+'" stroke-width="3" stroke-linecap="round" opacity="'+(mTag?0.2:0.85)+'"/></g>';
+          + '<line x1="'+px(s)+'" y1="'+py(s)+'" x2="'+px(n)+'" y2="'+py(n)+'" stroke="'+segColor(i)+'" stroke-width="3" stroke-linecap="round" opacity="'+(mTag?0.2:0.85)+'"/></g>';
       }
     });
     st.forEach((s,i)=>{
